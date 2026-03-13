@@ -4,7 +4,7 @@
     "slug": "app-preifma",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo-preifma.png",
     "scheme": "apppreifma",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -25,17 +25,20 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "router": {
+      "root": "src"
+    },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/logo-preifma.png",
+          "imageWidth": 250,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#F0FDF4",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#F0FDF4"
           }
         }
       ]

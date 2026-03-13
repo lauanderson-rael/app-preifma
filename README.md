@@ -1,50 +1,73 @@
-# Welcome to your Expo app 👋
+# Pré-IFMA APP📱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Este é um projeto [Expo](https://expo.dev) e [React Native](https://reactnative.dev/) para o aplicativo **Pré-IFMA**. 
 
-## Get started
+O aplicativo tem o objetivo de ajudar os alunos em sua preparação, simulados e testes.
 
-1. Install dependencies
+## 🚀 Como Executar o App
 
-   ```bash
-   npm install
-   ```
+Siga os passos abaixo para baixar, configurar e rodar o aplicativo na sua máquina:
 
-2. Start the app
+### Pré-requisitos
 
-   ```bash
-   npx expo start
-   ```
+1. **Node.js**: É necessário ter o [Node.js](https://nodejs.org/) instalado.
+2. **Dispositivo Teste**: Você pode testar de algumas formas:
+   - **Dispositivo físico (Celular)**: Instale o aplicativo **Expo Go** no seu celular (disponível para [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) e [iOS](https://apps.apple.com/us/app/expo-go/id982107779)).
+   - **Emulador**: Tenha um emulador configurado na sua máquina (ex: Android Studio ou Xcode).
 
-In the output, you'll find options to open the app in a
+### 1. Clonar o Repositório
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Primeiro, você precisa clonar o projeto na sua máquina. Abra um terminal e execute o seguinte comando:
 
 ```bash
-npm run reset-project
+git clone git@github.com:lauanderson-rael/app-preifma.git
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Em seguida, navegue até a pasta do projeto que foi criada:
 
-## Learn more
+```bash
+cd app-preifma
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### 2. Instalar as dependências
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+No terminal já dentro da pasta (`app-preifma`), instale as dependências usando o `npm`:
 
-## Join the community
+```bash
+npm install
+```
 
-Join our community of developers creating universal apps.
+### 3. Iniciar o servidor local (Expo)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Com as dependências instaladas, rode o comando abaixo para iniciar o projeto:
+
+```bash
+npx expo start
+```
+
+Após executar este comando, o Expo irá iniciar um servidor de desenvolvimento e mostrará um **QR Code** no terminal (e abrirá uma página web se você apertar a respectiva tecla).
+
+### 3. Visualizando o aplicativo
+
+- **No Celular Físico:** 
+  - *Android*: Abra o app Expo Go do seu celular e escaneie o QR Code.
+  - *iOS*: Abra a câmera do seu iPhone, escaneie o QR Code e clique no pop-up para abrir o Expo Go.
+- **No Emulador Android (Android Studio):** Aperte a tecla `a` no terminal.
+- **No Simulador iOS (Xcode):** Aperte a tecla `i` no terminal.
+- **Na Web:** Aperte a tecla `w` no terminal para rodar o app direto no seu navegador.
+
+---
+
+## 🛠️ Tecnologias e Estrutura
+
+- **React Native** & **Expo**: Base do projeto.
+- **Expo Router**: Utilizado para gerenciar a navegação e roteamento do aplicativo (com base na estrutura de pastas no diretório `app` / `src/app`).
+- **TypeScript**: Utilizado para tipagem do código, dando mais segurança ao desenvolvimento.
+
+Para fazer alterações no projeto, você pode explorar e editar os arquivos contidos principalmente na pasta `src/`. As mudanças serão refletidas quase instantaneamente no aplicativo graças ao recurso de *Fast Refresh*.
+
+## 📚 Links Úteis
+
+- [Documentação Oficial do Expo](https://docs.expo.dev/)
+- [Guia de Navegação (Expo Router)](https://docs.expo.dev/router/introduction/)
+- [Documentação do React Native](https://reactnative.dev/docs/getting-started)
