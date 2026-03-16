@@ -130,7 +130,14 @@ export default function PerfilScreen() {
 
   return (
     <View style={styles.safe}>
-      <CustomHeader title="Perfil" />
+      <CustomHeader 
+        title="Perfil" 
+        leftContent={
+          <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+        }
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

@@ -171,7 +171,14 @@ export default function SimuladosScreen() {
 
   return (
     <View style={styles.safe}>
-      <CustomHeader title="Simulados" />
+      <CustomHeader 
+        title="Simulados" 
+        leftContent={
+          <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+        }
+      />
       {/* ── Modal de Confirmação customizado ── */}
       <Modal visible={!!confirmSimuladoId} transparent animationType="fade">
         <View style={styles.loadingOverlay}>

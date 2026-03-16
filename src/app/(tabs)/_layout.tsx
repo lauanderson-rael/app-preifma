@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
@@ -21,6 +22,13 @@ function TabIcon({ name, activeName, color, focused }: TabIconProps) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  
+  // Evitar que os ícones fiquem "colados" ou abaixo na barra de navegação no Android
+  const basePadding = Platform.OS === 'ios' ? 24 : 8;
+  const paddingBottom = Math.max(basePadding, insets.bottom + (Platform.OS === 'android' ? 8 : 0));
+  const height = (Platform.OS === 'ios' ? 84 : 64) + (paddingBottom - basePadding);
+
   return (
     <Tabs
       screenOptions={{
@@ -31,11 +39,11 @@ export default function TabsLayout() {
           backgroundColor: Colors.white,
           borderTopWidth: 1,
           borderTopColor: '#F3F4F6',
-          height: Platform.OS === 'ios' ? 84 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: height,
+          paddingBottom: paddingBottom,
           paddingTop: 8,
-          elevation: 12,
-          shadowColor: '#000',
+          elevation: 12, // Android shadow
+          shadowColor: '#000', // iOS shadow
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.06,
           shadowRadius: 8,
@@ -69,6 +77,20 @@ export default function TabsLayout() {
             <TabIcon
               name="document-text-outline"
               activeName="document-text"
+              color={color}
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="provas"
+        options={{
+          title: 'Provas',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="download-outline"
+              activeName="download"
               color={color}
               focused={focused}
             />

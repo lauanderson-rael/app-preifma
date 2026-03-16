@@ -1,6 +1,7 @@
 import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React from 'react';
 import {
   ScrollView,
@@ -66,6 +67,7 @@ export default function HomeScreen() {
               key={materia.id}
               style={styles.materiaCard}
               activeOpacity={0.75}
+              onPress={() => router.push({ pathname: '/estudo/filtros', params: { materia: materia.id, titulo: materia.titulo } })}
             >
               <View style={[styles.materiaIconBox, { backgroundColor: materia.corFundo }]}>
                 <Ionicons name={materia.icone} size={24} color={materia.corIcone} />

@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ResultadoScreen() {
+  const insets = useSafeAreaInsets();
   const { id, respostas: respostasParam } = useLocalSearchParams<{ id: string; respostas: string }>();
   const simulado = getSimulado(id ?? '1');
   const questoes = simulado?.questoes ?? [];
@@ -54,7 +56,10 @@ export default function ResultadoScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(40, insets.bottom + 24) }]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Main Card */}
         <View style={styles.mainCard}>
           <View style={styles.iconCircle}>

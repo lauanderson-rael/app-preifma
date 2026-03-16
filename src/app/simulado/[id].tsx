@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CustomHeader } from '@/components/CustomHeader';
 
 // ── Utilitário: formatar segundos em HH:MM:SS ──────────────
@@ -48,6 +49,7 @@ function AlternativaItem({ letra, texto, selecionado, onPress }: AlternativaItem
 
 // ── Tela principal ─────────────────────────────────────────
 export default function SimuladoScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const simulado = getSimulado(id ?? '1');
   const questoes: Questao[] = simulado?.questoes ?? [];
@@ -212,7 +214,7 @@ export default function SimuladoScreen() {
       </ScrollView>
 
       {/* ── Footer fixo ── */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
         {/* Botão Finalizar Prova */}
         <TouchableOpacity
           style={[

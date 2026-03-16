@@ -1,10 +1,15 @@
 {
   "expo": {
-    "name": "app-preifma",
+    "name": "Pré-IFMA",
     "slug": "app-preifma",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo-preifma.png",
+    "splash": {
+      "image": "./assets/images/logo-preifma.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F0FDF4"
+    },
     "scheme": "apppreifma",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
