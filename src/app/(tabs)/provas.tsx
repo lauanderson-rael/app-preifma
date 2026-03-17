@@ -1,8 +1,8 @@
 import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { router } from 'expo-router'; 
 import {
   ScrollView,
   StyleSheet,
@@ -70,8 +70,8 @@ export default function ProvasScreen() {
 
   return (
     <View style={styles.safe}>
-      <CustomHeader 
-        title="Provas Anteriores" 
+      <CustomHeader
+        title="Provas Anteriores"
         leftContent={
           <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -80,17 +80,17 @@ export default function ProvasScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        
+
+        <Text style={styles.filtrosHeader}>Acesse arquivos de provas anteriores</Text>
         {/* FILTROS CARD */}
         <View style={styles.cardFiltros}>
-          <Text style={styles.filtrosHeader}>Encontre o seletivo certo</Text>
-          {/* Categoria: Nível */}
+          {/* Categoria: Modalidade */}
           <View style={styles.sectionStore}>
             <View style={styles.sectionHeader}>
               <Ionicons name="school-outline" size={20} color={Colors.primary} />
-              <Text style={styles.sectionTitle}>Nível da Prova</Text>
+              <Text style={styles.sectionTitle}>Tipo de curso</Text>
             </View>
-            
+
             <View style={styles.chipsContainer}>
               {NIVEIS.map((nivel) => {
                 const isSelected = nivelSelecionado === nivel;
@@ -116,7 +116,7 @@ export default function ProvasScreen() {
               <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
               <Text style={styles.sectionTitle}>Ano de Realização</Text>
             </View>
-            
+
             <View style={styles.chipsContainer}>
               {ANOS.map((ano) => {
                 const isSelected = anosSelecionados.includes(ano);
@@ -160,7 +160,7 @@ export default function ProvasScreen() {
 
             {resultados.map((resultado) => (
               <View key={resultado.id} style={styles.cardProva}>
-                
+
                 {/* Textos Informativos */}
                 <View style={styles.cardProvaLeft}>
                   <Text style={styles.provaTitle}>{resultado.titulo}</Text>
@@ -169,18 +169,18 @@ export default function ProvasScreen() {
 
                 {/* Botões de Ação */}
                 <View style={styles.cardProvaRight}>
-                  
-                  <TouchableOpacity 
-                    style={[styles.btnAction, styles.btnProva]} 
+
+                  <TouchableOpacity
+                    style={[styles.btnAction, styles.btnProva]}
                     activeOpacity={0.75}
                     onPress={handleClickProvas}
                   >
                     <Ionicons name="document-text" size={16} color={Colors.white} />
                     <Text style={styles.btnActionTexto}>Prova</Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.btnAction, styles.btnGabarito]} 
+
+                  <TouchableOpacity
+                    style={[styles.btnAction, styles.btnGabarito]}
                     activeOpacity={0.75}
                     onPress={handleClickProvas}
                   >
@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.text,
     letterSpacing: -0.3,
+
   },
   filtrosSub: {
     fontSize: 14,
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.text,
   },
   chipsContainer: {
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
   },
   provaTitle: {
     fontSize: 15,
-    fontWeight: '700',  
+    fontWeight: '700',
     // color: '#92400E', // Tom amarelado avermelhado semelhante a imagem
     marginBottom: 6,
     lineHeight: 20,

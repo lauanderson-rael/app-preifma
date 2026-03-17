@@ -58,10 +58,7 @@ const INFO_BULLETS = [
 ];
 
 // Subcomponente: Card de Simulado
-function SimuladoCard({
-  item,
-  onStart,
-}: {
+function SimuladoCard({ item, onStart, }: {
   item: Simulado;
   onStart: (id: string) => void;
 }) {
@@ -171,8 +168,8 @@ export default function SimuladosScreen() {
 
   return (
     <View style={styles.safe}>
-      <CustomHeader 
-        title="Simulados" 
+      <CustomHeader
+        title="Simulados"
         leftContent={
           <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -224,12 +221,12 @@ export default function SimuladosScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.pageHeader}>
+        {/* <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Simulados</Text>
           <Text style={styles.pageSubtitle}>
             Teste seus conhecimentos com simulados completos
           </Text>
-        </View>
+        </View> */}
 
         {/* Card informativo verde */}
         <View style={styles.infoCard}>
@@ -385,7 +382,7 @@ const styles = StyleSheet.create({
 
   // Info card
   infoCard: {
-    backgroundColor: Colors.primary
+    backgroundColor: Colors.secondary
     ,
     borderRadius: 16,
     padding: 20,
@@ -458,7 +455,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.text,
     letterSpacing: -0.3,
   },
@@ -503,7 +500,7 @@ const styles = StyleSheet.create({
 
   // Botão iniciar
   iniciarBtn: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: Colors.primary,
     borderRadius: 10,
     height: 44,
     alignItems: 'center',
@@ -511,12 +508,12 @@ const styles = StyleSheet.create({
   },
   iniciarBtnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#2563EB',
+    fontWeight: '800',
+    color: '#ffffffff',
     letterSpacing: 0.1,
   },
   refazerBtn: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#d5d5d5ff',
     borderRadius: 10,
     height: 44,
     alignItems: 'center',

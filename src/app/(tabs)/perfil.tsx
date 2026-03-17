@@ -130,11 +130,20 @@ export default function PerfilScreen() {
 
   return (
     <View style={styles.safe}>
-      <CustomHeader 
-        title="Perfil" 
+      <CustomHeader
+        title="Perfil"
         leftContent={
           <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+        }
+        rightContent={
+          <TouchableOpacity 
+            onPress={() => router.push('/perfil/configuracoes')}
+            style={{ padding: 4, marginRight: -4 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="settings-outline" size={24} color={Colors.white} />
           </TouchableOpacity>
         }
       />
@@ -294,11 +303,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    marginBottom: 20,
   },
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 50,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -530,7 +540,7 @@ const styles = StyleSheet.create({
   },
   sairBtnText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#ffffffff',
   },
 });

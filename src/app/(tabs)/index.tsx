@@ -82,7 +82,9 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Simulado (destaque) ── */}
-        <TouchableOpacity style={styles.simuladoCard} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.simuladoCard} activeOpacity={0.85}
+          onPress={() => router.push({ pathname: '/simulados' })}
+        >
           <View style={styles.simuladoIconBox}>
             <Ionicons name="clipboard-outline" size={28} color={Colors.white} />
           </View>

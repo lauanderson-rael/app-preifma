@@ -1,10 +1,11 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer } from 'expo-audio';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import React, { useRef, useState } from 'react';
+import { Animated, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ── Dados Mockados ─────────────────────────────────────────
 const DUMMY_QUESTOES = [
@@ -75,43 +76,92 @@ const DUMMY_QUESTOES = [
 export default function QuestaoEstudoScreen() {
   const { materia, titulo } = useLocalSearchParams<{ materia: string; titulo: string }>();
   const insets = useSafeAreaInsets();
-  
+
   // Filtra as questoes mockadas pra combinar com a materia. Se n tiver, usa tudo
   const dbFiltrado = DUMMY_QUESTOES.filter(q => q.materia === materia);
   const dataStore = dbFiltrado.length > 0 ? dbFiltrado : DUMMY_QUESTOES;
 
   const [questaoAtual, setQuestaoAtual] = useState(dataStore[0]);
   const [respondida, setRespondida] = useState(false);
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [opcaoMarcada, setOpcaoMarcada] = useState<string | null>(null);
   const [modalIAVisible, setModalIAVisible] = useState(false);
-  
+
+  // Animação do Feedback
+  const feedbackAnim = useRef(new Animated.Value(0)).current;
+
   // Mocks de dados de progresso
-  const totalProgresso = 100; // fingindo q é 100 questoes pra barra de progresso encher as cegas
+  const totalProgresso = 100;
   const [respondidasTotais, setRespondidasTotais] = useState(10);
-  
+
   const acertou = respondida && opcaoMarcada === questaoAtual.correta;
 
   const sortearNovaQuestao = () => {
-    const min = 0;
-    const max = dataStore.length - 1;
-    let randomIndex = Math.floor(Math.random() * (max - min + 1)) + min;
-    setQuestaoAtual(dataStore[randomIndex]);
-    setRespondida(false);
-    setOpcaoMarcada(null);
+    // Escondendo o feedback antes de trocar a questão
+    Animated.timing(feedbackAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      const min = 0;
+      const max = dataStore.length - 1;
+      let randomIndex = Math.floor(Math.random() * (max - min + 1)) + min;
+      setQuestaoAtual(dataStore[randomIndex]);
+      setRespondida(false);
+      setOpcaoMarcada(null);
+      setSelectedOptionId(null);
+    });
   };
 
-  const handleResponder = (idMarcado: string) => {
+  // Fontes de áudio
+  const successSource = require('../../../assets/sounds/success.mp3');
+  const errorSource = require('../../../assets/sounds/error.mp3');
+
+  const playerSuccess = useAudioPlayer(successSource);
+  const playerError = useAudioPlayer(errorSource);
+
+  const playSound = (isCorrect: boolean) => {
+    try {
+      if (isCorrect) {
+        playerSuccess.play();
+      } else {
+        playerError.play();
+      }
+    } catch (error) {
+      console.log('Erro ao tocar som:', error);
+    }
+  };
+
+  const handleSelectOption = (id: string) => {
     if (respondida) return;
-    setOpcaoMarcada(idMarcado);
+    setSelectedOptionId(id);
+  };
+
+  const checkAnswer = () => {
+    if (!selectedOptionId || respondida) return;
+
+    const isCorrect = selectedOptionId === questaoAtual.correta;
+    setOpcaoMarcada(selectedOptionId);
     setRespondida(true);
     setRespondidasTotais(prev => prev + 1);
+
+    // Toca o som
+    playSound(isCorrect);
+
+    // Sobe o painel de feedback
+    Animated.spring(feedbackAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
     <View style={styles.safe}>
       <StatusBar style="light" backgroundColor={Colors.primary} />
-      
-      {/* HEADER VERDE (Semelhante ao CustomHeader mas com layout especifico e progressbar nativo) */}
+
+      {/* HEADER VERDE */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrapper}>
@@ -120,24 +170,22 @@ export default function QuestaoEstudoScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {titulo} - {questaoAtual.assunto}
           </Text>
-          <View style={styles.backBtnWrapper} /* Spacer para centralizar titulo */ />
+          <View style={styles.backBtnWrapper} />
         </View>
-        
-        {/* Progress Bar Verde Claro */}
+
         <View style={styles.progressContainer}>
           <View style={styles.progressTrack}>
-            <View 
+            <View
               style={[
-                styles.progressFill, 
+                styles.progressFill,
                 { width: `${Math.min((respondidasTotais / totalProgresso) * 100, 100)}%` }
-              ]} 
+              ]}
             />
           </View>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        
         {/* CARD ENUNCIADO */}
         <View style={styles.cardEnunciado}>
           <Text style={styles.enunciadoText}>{questaoAtual.enunciado}</Text>
@@ -146,9 +194,10 @@ export default function QuestaoEstudoScreen() {
         {/* ALTERNATIVAS */}
         <View style={styles.alternativasContainer}>
           {questaoAtual.alternativas.map((alt) => {
+            const isSelected = selectedOptionId === alt.id;
             const isMarcada = opcaoMarcada === alt.id;
             const isCorretaOficial = alt.id === questaoAtual.correta;
-            
+
             // Logica de Cores Condicionais
             let borderColor = '#E5E7EB';
             let bgColor = Colors.white;
@@ -156,110 +205,149 @@ export default function QuestaoEstudoScreen() {
 
             if (respondida) {
               if (isCorretaOficial) {
-                // Alternativa correta da questão sempre fica verde quando revelada
-                borderColor = '#22C55E';
-                bgColor = '#DCFCE7';
-                iconElement = <Ionicons name="checkmark-circle-outline" size={24} color="#16A34A" />;
+                borderColor = Colors.primary;
+                bgColor = Colors.primaryLight;
+                iconElement = <Ionicons name="checkmark-circle-outline" size={24} color={Colors.primary} />;
               } else if (isMarcada && !isCorretaOficial) {
-                // Alternativa que o usuario marcou e errou fica vermelha
-                borderColor = '#EF4444';
-                bgColor = '#FEE2E2';
-                iconElement = <Ionicons name="close-circle-outline" size={24} color="#DC2626" />;
+                borderColor = Colors.error;
+                bgColor = '#FEF2F2';
+                iconElement = <Ionicons name="close-circle-outline" size={24} color={Colors.error} />;
               }
-            } else if (isMarcada) {
-              // Quando não está finalizado ainda, mas marca opcional (se fosse modelo prova). 
-              // Mas aqui a reposta é automatica no clique como no DuoLingo.
+            } else if (isSelected) {
+              borderColor = Colors.primary;
+              bgColor = '#F0FDF4'; // Verde muito claro
             }
+
+            const showBottomBorder = isSelected || (respondida && (isCorretaOficial || isMarcada));
 
             return (
               <TouchableOpacity
                 key={alt.id}
-                onPress={() => handleResponder(alt.id)}
+                onPress={() => handleSelectOption(alt.id)}
                 activeOpacity={0.7}
                 style={[
                   styles.btnAlternativa,
-                  { borderColor, backgroundColor: bgColor }
+                  { borderColor, backgroundColor: bgColor },
+                  showBottomBorder && { borderBottomWidth: 3, paddingBottom: 11 }
                 ]}
               >
-                <Text style={styles.alternativaTexto}>{alt.texto}</Text>
+                <View style={styles.alternativaContent}>
+                  <View style={[
+                    styles.labelCirculo,
+                    respondida && isCorretaOficial && styles.labelCirculoCorreto,
+                    respondida && isMarcada && !isCorretaOficial && styles.labelCirculoIncorreto,
+                    isSelected && !respondida && styles.labelCirculoSelected
+                  ]}>
+                    <Text style={[
+                      styles.labelText,
+                      respondida && isCorretaOficial && styles.labelTextCorreto,
+                      respondida && isMarcada && !isCorretaOficial && styles.labelTextIncorreto,
+                      isSelected && !respondida && styles.labelTextSelected
+                    ]}>
+                      {alt.id}
+                    </Text>
+                  </View>
+                  <Text style={[
+                    styles.alternativaTexto,
+                    isSelected && !respondida && { color: Colors.primary, fontWeight: '700' }
+                  ]}>{alt.texto}</Text>
+                </View>
                 {iconElement}
               </TouchableOpacity>
             );
           })}
         </View>
-
       </ScrollView>
 
-      {/* FEEDBACK BOTTOM (Só aparece se já foi respondida hoje) */}
-      <View style={[styles.footerContainer, { paddingBottom: Math.max(24, insets.bottom + 8) }]}>
-        {respondida && (
-          <View style={[styles.alertFeedback, acertou ? styles.alertCorreto : styles.alertIncorreto]}>
-            <View style={styles.alertHeaderRow}>
-              <Ionicons 
-                name={acertou ? "checkmark-circle" : "close-circle"} 
-                size={22} 
-                color={acertou ? "#16A34A" : "#DC2626"} 
-              />
-              <Text style={[styles.alertTitle, acertou ? styles.alertTitleCorreto : styles.alertTitleIncorreto]}>
-                {acertou ? "Resposta Correta" : "Resposta Incorreta"}
+      {/* FOOTER FIXO COM BOTÃO "RESPONDER" */}
+      {!respondida && (
+        <View style={[styles.staticFooter, { paddingBottom: Math.max(24, insets.bottom + 8) }]}>
+          <TouchableOpacity
+            style={[styles.btnResponder, !selectedOptionId && styles.btnDisabled]}
+            onPress={checkAnswer}
+            disabled={!selectedOptionId}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.btnResponderTexto, !selectedOptionId && styles.btnDisabledTexto]}>
+              RESPONDER
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <Animated.View
+        style={[
+          styles.feedbackOverlay,
+          {
+            backgroundColor: acertou ? '#CCF7D9' : '#FEE2E2', // Tons um pouco mais saturados/escuros que o anterior
+            paddingBottom: Math.max(34, insets.bottom + 16),
+            transform: [{
+              translateY: feedbackAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [600, 0]
+              })
+            }]
+          }
+        ]}
+      >
+        <View style={styles.feedbackContent}>
+          <View style={styles.feedbackHeader}>
+            <View style={styles.feedbackIconText}>
+              {/* <View style={[styles.feedbackIconCircle, { backgroundColor: acertou ? Colors.primary : Colors.error }]}>
+                <Ionicons name={acertou ? "checkmark" : "close"} size={22} color={Colors.white} />
+              </View> */}
+              <Text style={[styles.feedbackTitle, { color: acertou ? Colors.primaryDark : Colors.error }]}>
+                {acertou ? "Excelente!" : "Incorreto"}
               </Text>
             </View>
-            <Text style={[styles.alertSubtitle, acertou ? styles.alertSubtitleCorreto : styles.alertSubtitleIncorreto]}>
-              {acertou ? "Muito bem, continue assim!" : "Não desanime, você está aprendendo"}
-            </Text>
           </View>
-        )}
 
-        <TouchableOpacity 
-          style={[styles.btnExplicaIA, !respondida && styles.btnExplicaIADisabled]} 
-          activeOpacity={0.8}
-          disabled={!respondida}
-          onPress={() => setModalIAVisible(true)}
-        >
-          <Ionicons name="sparkles" size={18} color={!respondida ? '#9CA3AF' : Colors.white} />
-          <Text style={[styles.btnExplicaIATexto, !respondida && styles.btnExplicaIATextoDisabled]}>
-            Explicação com IA (2 disponíveis)
-          </Text>
-        </TouchableOpacity>
+          {!acertou && (
+            <View style={styles.correctAnswerBox}>
+              <Text style={styles.correctAnswerLabel}>Resposta correta:</Text>
+              <Text style={styles.correctAnswerText}>
+                {questaoAtual.alternativas.find(a => a.id === questaoAtual.correta)?.texto}
+              </Text>
+            </View>
+          )}
 
-        <TouchableOpacity 
-          style={[styles.btnProxima, !respondida && styles.btnProximaDisabled]} 
-          onPress={sortearNovaQuestao}
-          activeOpacity={0.8}
-          disabled={!respondida}
-        >
-          <Text style={[styles.btnProximaTexto, !respondida && styles.btnProximaTextoDisabled]}>
-            Próxima Questão
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => setModalIAVisible(true)}
+            style={[
+              styles.btnExpliqueIA,
+              { backgroundColor: 'rgba(255,255,255,0.5)', borderColor: acertou ? Colors.primary : Colors.error }
+            ]}
+          >
+            <Ionicons name="sparkles" size={18} color={acertou ? Colors.primaryDark : Colors.error} />
+            <Text style={[styles.btnExpliqueIATexto, { color: acertou ? Colors.primaryDark : Colors.error }]}>
+              Explicação com IA (2 disponíveis)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.btnContinuar, { backgroundColor: acertou ? Colors.primary : Colors.error }]}
+            onPress={sortearNovaQuestao}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.btnContinuarTexto}>CONTINUAR</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
       {/* MODAL IA */}
-      <Modal
-        visible={modalIAVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalIAVisible(false)}
-      >
+      <Modal visible={modalIAVisible} animationType="slide" transparent={true} onRequestClose={() => setModalIAVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            
-            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderTitleRow}>
                 <Ionicons name="sparkles" size={24} color={Colors.white} />
                 <Text style={styles.modalHeaderTitle}>Explicação com IA</Text>
               </View>
-              <Text style={styles.modalHeaderSubtitle}>Entenda o conceito por trás da questão</Text>
-              
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalIAVisible(false)}>
                 <Ionicons name="close" size={24} color={Colors.white} />
               </TouchableOpacity>
             </View>
-
-            {/* Modal Body */}
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Conceito Chave */}
               <View style={styles.conceitoBox}>
                 <View style={styles.conceitoTitleRow}>
                   <Ionicons name="bulb-outline" size={18} color="#9333EA" />
@@ -267,391 +355,110 @@ export default function QuestaoEstudoScreen() {
                 </View>
                 <Text style={styles.conceitoText}>{questaoAtual.explicacao?.conceitoChave ?? 'Conceito principal'}</Text>
               </View>
-
               <Text style={styles.topicTitle}>O que você precisa saber:</Text>
-              <Text style={styles.paragraph}>
-                {questaoAtual.explicacao?.oQueSaber ?? 'Aqui estaria a explicação gerada pela inteligência artificial com base na matéria selecionada ajudando a entender o porquê da resposta exata.'}
-              </Text>
-
-              <Text style={styles.topicTitle}>Pontos Importantes:</Text>
-              <View style={styles.pontosList}>
-                {(questaoAtual.explicacao?.pontosImportantes ?? ['Ponto 1', 'Ponto 2', 'Ponto 3']).map((ponto, idx) => (
-                  <View key={idx} style={styles.pontoRow}>
-                    <View style={styles.pontoNumberCircle}>
-                      <Text style={styles.pontoNumberText}>{idx + 1}</Text>
-                    </View>
-                    <Text style={styles.pontoText}>{ponto}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Box de Resposta Correta */}
+              <Text style={styles.paragraph}>{questaoAtual.explicacao?.oQueSaber ?? 'Explicação detalhada.'}</Text>
               <View style={styles.respostaCorretaBox}>
                 <Text style={styles.respostaCorretaLabel}>Resposta Correta:</Text>
-                <Text style={styles.respostaCorretaText}>
-                  {questaoAtual.explicacao?.respostaCorreta ?? 'Gabarito da Questão'}
-                </Text>
+                <Text style={styles.respostaCorretaText}>{questaoAtual.alternativas.find(a => a.id === questaoAtual.correta)?.texto}</Text>
               </View>
-
-            </ScrollView>
-
-            {/* Modal Footer */}
-            <View style={[styles.modalFooter, { paddingBottom: Math.max(24, insets.bottom + 12) }]}>
-              <TouchableOpacity 
-                style={styles.modalBtnEntendi}
-                onPress={() => setModalIAVisible(false)}
-                activeOpacity={0.8}
-              >
+              <TouchableOpacity style={styles.modalBtnEntendi} onPress={() => setModalIAVisible(false)}>
                 <Text style={styles.modalBtnEntendiText}>Entendi!</Text>
               </TouchableOpacity>
-            </View>
-
+            </ScrollView>
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  
-  // -- Header Novo --
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 20,
     paddingBottom: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     elevation: 4,
-    shadowColor: Colors.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 60,
-  },
-  backBtnWrapper: {
-    padding: 6,
-    marginLeft: -6,
-    minWidth: 40,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.white,
-  },
-  
-  // -- Progress --
-  progressContainer: {
-    marginTop: 4,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-  },
-
-  // -- Content --
-  content: {
-    padding: 20,
-    gap: 20,
-    paddingBottom: 40,
-  },
-  cardEnunciado: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
-  },
-  enunciadoText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: Colors.text,
-    fontWeight: '500',
-  },
-
-  // -- Alternativas --
-  alternativasContainer: {
-    gap: 12,
-  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 60 },
+  backBtnWrapper: { padding: 6, minWidth: 40 },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: Colors.white },
+  progressContainer: { marginTop: 4 },
+  progressTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 8, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: Colors.white, borderRadius: 8 },
+  content: { padding: 20, gap: 20, paddingBottom: 100 },
+  cardEnunciado: { backgroundColor: Colors.white, borderRadius: 20, padding: 24, elevation: 1, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  enunciadoText: { fontSize: 16, lineHeight: 24, color: '#374151', fontWeight: '600' },
+  alternativasContainer: { gap: 12 },
   btnAlternativa: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.white,
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
     borderWidth: 1.5,
-  },
-  alternativaTexto: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: Colors.textSecondary,
-    flex: 1,
-    paddingRight: 12,
-  },
-
-  // -- Footer Area --
-  footerContainer: {
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: 24,
-    backgroundColor: '#F9FAFB',
-  },
-
-  // Alerts Feedback
-  alertFeedback: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-  },
-  alertCorreto: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
-  },
-  alertIncorreto: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-  },
-  alertHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  alertTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  alertTitleCorreto: { color: '#16A34A' },
-  alertTitleIncorreto: { color: '#DC2626' },
-  
-  alertSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  alertSubtitleCorreto: { color: '#15803D' },
-  alertSubtitleIncorreto: { color: '#991B1B' },
-
-  btnExplicaIA: {
-    backgroundColor: '#A855F7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 16,
-  },
-  btnExplicaIADisabled: {
-    backgroundColor: '#F9FAFB',
     borderColor: '#E5E7EB',
-    borderWidth: 1.5,
   },
-  btnExplicaIATexto: {
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  btnExplicaIATextoDisabled: {
-    color: '#9CA3AF',
-  },
-
-  // Progess Button
-  btnProxima: {
-    backgroundColor: Colors.primary,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  btnProximaDisabled: {
-    backgroundColor: '#D1D5DB', // Cinza Ghost
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  btnProximaTexto: {
-    color: Colors.white,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  btnProximaTextoDisabled: {
-    color: '#9CA3AF',
-  },
-
-  // Modal IA
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: '90%',
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    backgroundColor: '#A855F7',
-    padding: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
-  },
-  modalHeaderTitleRow: {
+  alternativaContent: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 16 },
+  labelCirculo: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
+  labelCirculoSelected: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  labelCirculoCorreto: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  labelCirculoIncorreto: { backgroundColor: Colors.error, borderColor: Colors.error },
+  labelText: { fontSize: 14, fontWeight: '700', color: '#6B7280' },
+  labelTextSelected: { color: Colors.white },
+  labelTextCorreto: { color: Colors.white },
+  labelTextIncorreto: { color: Colors.white },
+  alternativaTexto: { fontSize: 15, fontWeight: '500', color: '#4B5563', flex: 1 },
+  staticFooter: { padding: 20, backgroundColor: Colors.white, borderTopWidth: 1, borderColor: '#F3F4F6' },
+  btnResponder: { backgroundColor: Colors.primary, height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  btnDisabled: { backgroundColor: '#E5E7EB' },
+  btnResponderTexto: { color: Colors.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  btnDisabledTexto: { color: '#9CA3AF' },
+  feedbackOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 999, elevation: 20 },
+  feedbackContent: { gap: 16 },
+  feedbackHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  feedbackIconText: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  feedbackIconCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  feedbackTitle: { fontSize: 20, fontWeight: '800' },
+  btnExpliqueIA: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  modalHeaderTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  modalHeaderSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 8,
-    fontSize: 14,
-  },
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 24,
-    right: 20,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  modalBody: {
-    padding: 24,
-  },
-  conceitoBox: {
-    backgroundColor: '#FAF5FF',
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-  },
-  conceitoTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
-  },
-  conceitoTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#7E22CE',
-  },
-  conceitoText: {
-    fontSize: 16,
-    color: '#6B21A8',
-    fontWeight: '500',
-    marginLeft: 26, // alinhar
-  },
-  topicTitle: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    marginBottom: 12,
-  },
-  paragraph: {
-    fontSize: 15,
-    color: Colors.text,
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  pontosList: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  pontoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  pontoNumberCircle: {
-    width: 24,
-    height: 24,
+    height: 52,
     borderRadius: 12,
-    backgroundColor: '#DCFCE7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
   },
-  pontoNumberText: {
-    color: '#16A34A',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pontoText: {
-    flex: 1,
+  btnExpliqueIATexto: {
     fontSize: 15,
-    color: Colors.text,
-    lineHeight: 22,
-  },
-  respostaCorretaBox: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 40,
-  },
-  respostaCorretaLabel: {
-    fontSize: 14,
-    color: '#16A34A',
-    marginBottom: 8,
-  },
-  respostaCorretaText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#15803D',
-  },
-  modalFooter: {
-    padding: 20,
-    paddingBottom: 40,
-    borderTopWidth: 1,
-    borderColor: '#F3F4F6',
-    backgroundColor: Colors.white,
-  },
-  modalBtnEntendi: {
-    backgroundColor: '#A855F7',
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalBtnEntendiText: {
-    color: Colors.white,
-    fontSize: 16,
     fontWeight: '700',
   },
+  correctAnswerBox: { backgroundColor: 'rgba(239, 68, 68, 0.05)', padding: 12, borderRadius: 10, gap: 4 },
+  correctAnswerLabel: { fontSize: 13, fontWeight: '700', color: Colors.error },
+  correctAnswerText: { fontSize: 15, fontWeight: '600', color: Colors.error },
+  btnContinuar: { height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  btnContinuarTexto: { color: Colors.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '85%' },
+  modalHeader: { backgroundColor: '#A855F7', padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  modalHeaderTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  modalHeaderTitle: { fontSize: 18, fontWeight: '700', color: Colors.white },
+  modalCloseBtn: { position: 'absolute', top: 20, right: 20 },
+  modalBody: { padding: 24 },
+  conceitoBox: { backgroundColor: '#FAF5FF', padding: 16, borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: '#F3E8FF' },
+  conceitoTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  conceitoTitle: { fontSize: 14, fontWeight: '700', color: '#7E22CE' },
+  conceitoText: { fontSize: 16, color: '#6B21A8', fontWeight: '600' },
+  topicTitle: { fontSize: 15, color: '#4B5563', marginBottom: 12, fontWeight: '700' },
+  paragraph: { fontSize: 15, color: '#374151', lineHeight: 24, marginBottom: 24 },
+  respostaCorretaBox: { backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#0bff81ff', borderRadius: 16, padding: 20, marginBottom: 24 },
+  respostaCorretaLabel: { fontSize: 13, color: '#059669', marginBottom: 4, fontWeight: '700' },
+  respostaCorretaText: { fontSize: 16, fontWeight: '600', color: '#047857' },
+  modalBtnEntendi: { backgroundColor: '#A855F7', height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalBtnEntendiText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
 });
+

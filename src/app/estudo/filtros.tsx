@@ -43,20 +43,20 @@ export default function FiltrosScreen() {
           </TouchableOpacity>
         }
       />
-      
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.titleInfo}>Configure o seu treino</Text>
+          <Text style={styles.titleInfo}>Personalize seu estudo</Text>
           <Text style={styles.subtitleInfo}>Questões aleatórias filtradas do jeitinho que você precisa.</Text>
         </View>
 
-        {/* Categoria: Nível */}
+        {/* Categoria: modalidade */}
         <View style={styles.sectionStore}>
           <View style={styles.sectionHeader}>
             <Ionicons name="school-outline" size={20} color={Colors.primary} />
-            <Text style={styles.sectionTitle}>Nível da Prova</Text>
+            <Text style={styles.sectionTitle}>Modalidade</Text>
           </View>
-          
+
           <View style={styles.chipsContainer}>
             {NIVEIS.map((nivel) => {
               const isSelected = nivelSelecionado === nivel;
@@ -82,7 +82,7 @@ export default function FiltrosScreen() {
             <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>Anos das Provas</Text>
           </View>
-          
+
           <View style={styles.chipsContainer}>
             {ANOS.map((ano) => {
               const isSelected = anosSelecionados.includes(ano);
@@ -108,7 +108,7 @@ export default function FiltrosScreen() {
       <View style={[styles.footer, { paddingBottom: Math.max(24, insets.bottom + 8) }]}>
         <TouchableOpacity style={styles.btnIniciar} onPress={handleIniciar} activeOpacity={0.8}>
           <Ionicons name="play" size={20} color={Colors.white} />
-          <Text style={styles.btnIniciarTexto}>Iniciar Treino</Text>
+          <Text style={styles.btnIniciarTexto}>Iniciar Estudo</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.text,
   },
 

@@ -56,8 +56,8 @@ export default function ResultadoScreen() {
         }
       />
 
-      <ScrollView 
-        contentContainerStyle={[styles.content, { paddingBottom: Math.max(40, insets.bottom + 24) }]} 
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(40, insets.bottom + 24) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Main Card */}
@@ -123,7 +123,7 @@ export default function ResultadoScreen() {
         {/* Botões */}
         <TouchableOpacity
           style={styles.btnVerde}
-          onPress={() => router.replace('/(tabs)/')}
+          onPress={() => router.replace('/(tabs)')}
           activeOpacity={0.8}
         >
           <Text style={styles.btnVerdeTexto}>Voltar para Tela Inicial</Text>
