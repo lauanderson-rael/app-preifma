@@ -1,292 +1,697 @@
+import { dashboardService } from '@/api/dashboardService';
+import { examService } from '@/api/examService';
+import { sessionService } from '@/api/sessionService';
 import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/context/AuthContext';
+import type { Dashboard, SessionType } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { Book, Calculator, ChevronRight, Gem, Shuffle, Timer, Zap } from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-// Dados mockados por enquanto
-const MATERIAS = [
-  {
-    id: 'portugues',
+const { width } = Dimensions.get('window');
+
+const Hexagon = ({ color, size = 32 }: { color: string, size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 100 100">
+    <Path
+      d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z"
+      fill={color}
+    />
+  </Svg>
+);
+const BANNER_WIDTH = width - 32;
+
+const SUBJECT_CONFIG: Record<string, { titulo: string; Icon: any; corFundo: string; corIcone: string; gradient: [string, string] }> = {
+  portugues: {
     titulo: 'Português',
-    descricao: 'Gramática e interpretação',
-    icone: 'book-outline' as const,
+    Icon: Book,
     corFundo: '#DCFCE7',
-    corIcone: Colors.primary,
+    corIcone: '#16A34A',
+    gradient: ['#22C55E', '#16A34A']
   },
-  {
-    id: 'matematica',
+  matematica: {
     titulo: 'Matemática',
-    descricao: 'Álgebra e geometria',
-    icone: 'calculator-outline' as const,
+    Icon: Calculator,
     corFundo: '#DBEAFE',
     corIcone: '#3B82F6',
+    gradient: ['#3B82F6', '#2563EB']
   },
-];
-
-const PROGRESSO = {
-  questoesRespondidas: 12,
-  taxaAcerto: 75,
-  diasSeguidos: 7,
 };
 
 export default function HomeScreen() {
+  const { user, refreshUser } = useAuth();
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [activeBanner, setActiveBanner] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [startingSession, setStartingSession] = useState(false);
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      const [data] = await Promise.all([
+        dashboardService.getDashboard(),
+        refreshUser(),
+      ]);
+      setDashboard(data);
+    } catch (err) {
+      console.error('Erro ao carregar dashboard:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [refreshUser]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const startQuickSession = async (type: SessionType, subject?: 'portugues' | 'matematica') => {
+    if (startingSession) return;
+    setStartingSession(true);
+    try {
+      const count = type === 'quick' ? 5 : 10;
+      const questions = await examService.getRandomQuestions({ count, subject });
+      if (!questions || questions.length === 0) {
+        Alert.alert('Sem questões', 'Não há questões disponíveis para este filtro.');
+        return;
+      }
+      const questionIds = questions.map((q) => q.id);
+      const session = await sessionService.startSession({ type, question_ids: questionIds });
+
+      router.push({
+        pathname: '/estudo/questao',
+        params: {
+          sessionId: String(session.id),
+          sessionType: type,
+          questionIds: questionIds.join(','),
+          materia: subject ?? '',
+          titulo: subject ? SUBJECT_CONFIG[subject]?.titulo ?? 'Estudo' : 'Partida Rápida',
+        },
+      });
+    } catch {
+      Alert.alert('Erro', 'Não foi possível iniciar a sessão. Verifique sua conexão.');
+    } finally {
+      setStartingSession(false);
+    }
+  };
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Lauanderson';
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <CustomHeader title="Início" />
+      <StatusBar style="light" />
+
+      <CustomHeader
+        title=""
+        leftContent={
+          <View style={styles.headerUserBlock}>
+            <Text style={styles.headerGreetingText} numberOfLines={1}>Olá {firstName}! 👋</Text>
+          </View>
+        }
+        rightContent={
+          <View style={styles.headerIcons}>
+            <View style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}>
+              <View style={styles.diamondIconWrapper}>
+                <Ionicons name="flame" size={14} color="#FB923C" />
+              </View>
+              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>70</Text>
+            </View>
+
+            <View style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}>
+              <View style={styles.diamondIconWrapper}>
+                <Gem size={14} color="#0EA5E9" fill="#0EA5E9" />
+              </View>
+              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>70</Text>
+            </View>
+          </View>
+        }
+      />
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
       >
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Olá, estudante!</Text>
-            <Text style={styles.subGreeting}>
-              Continue seus estudos para o IFMA
-            </Text>
-          </View>
-          <View style={styles.streakBadge}>
-            <Ionicons name="flame" size={16} color="#EA580C" />
-            <Text style={styles.streakText}>{PROGRESSO.diasSeguidos} dias</Text>
+        {/* ── Banners Carousel ── */}
+        <View style={styles.carouselContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={BANNER_WIDTH + 12}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const index = Math.round(x / (BANNER_WIDTH + 12));
+              setActiveBanner(index);
+            }}
+            scrollEventThrottle={16}
+            contentContainerStyle={{ gap: 12 }}
+          >
+            <Image
+              source={require('../../../assets/images/banner1.png')}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+            <Image
+              source={require('../../../assets/images/banner2.png')}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+          </ScrollView>
+          <View style={styles.pagination}>
+            {[0, 1].map((i) => (
+              <View
+                key={i}
+                style={[
+                  styles.paginationDot,
+                  activeBanner === i && styles.paginationDotActive
+                ]}
+              />
+            ))}
           </View>
         </View>
 
-        {/* Matérias */}
-        <View style={styles.section}>
-          {MATERIAS.map((materia) => (
-            <TouchableOpacity
-              key={materia.id}
-              style={styles.materiaCard}
-              activeOpacity={0.75}
-              onPress={() => router.push({ pathname: '/estudo/filtros', params: { materia: materia.id, titulo: materia.titulo } })}
-            >
-              <View style={[styles.materiaIconBox, { backgroundColor: materia.corFundo }]}>
-                <Ionicons name={materia.icone} size={24} color={materia.corIcone} />
-              </View>
-              <View style={styles.materiaInfo}>
-                <Text style={styles.materiaTitle}>{materia.titulo}</Text>
-                <Text style={styles.materiaDesc}>{materia.descricao}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* ── Simulado (destaque) ── */}
-        <TouchableOpacity style={styles.simuladoCard} activeOpacity={0.85}
-          onPress={() => router.push({ pathname: '/simulados' })}
+        {/* ── Stats Card ── */}
+        <LinearGradient
+          colors={['#064E3B', '#022C22']}
+          style={styles.statsCard}
         >
-          <View style={styles.simuladoIconBox}>
-            <Ionicons name="clipboard-outline" size={28} color={Colors.white} />
+          {/* XP Section */}
+          <View style={[styles.statsSection, { flex: 1 }]}>
+            <View style={styles.statsIconContainer}>
+              <Hexagon color="#FACC15" size={28} />
+              <Ionicons name="star" size={14} color="#854D0E" style={styles.statsIconOverlay} />
+            </View>
+            <View style={styles.statsInfo}>
+              <Text style={styles.statsLabel}>XP Total</Text>
+              <Text style={styles.statsValue} numberOfLines={1}>
+                {(dashboard?.xp || 0).toLocaleString('pt-BR')}
+              </Text>
+              <View style={styles.statsProgressTrack}>
+                <View
+                  style={[
+                    styles.statsProgressFill,
+                    { width: `${dashboard?.progress_pct ?? 0}%` }
+                  ]}
+                />
+              </View>
+              <Text style={styles.statsSubtext}>Meta atual: {(dashboard?.xp ?? 0) + (dashboard?.xp_to_next_level ?? 0)} XP</Text>
+            </View>
           </View>
-          <View style={styles.simuladoInfo}>
-            <Text style={styles.simuladoTitle}>Simulado</Text>
-            <Text style={styles.simuladoDesc}>Teste seus conhecimentos</Text>
-          </View>
-          <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-        </TouchableOpacity>
 
-        {/* ── Progresso de Hoje ── */}
-        <View style={styles.progressSection}>
-          <Text style={styles.progressTitle}>Seu Progresso Hoje</Text>
-          <View style={styles.progressGrid}>
-            <View style={styles.progressCard}>
-              <Text style={styles.progressValue}>
-                {PROGRESSO.questoesRespondidas}
-              </Text>
-              <Text style={styles.progressLabel}>Questões{'\n'}respondidas</Text>
+          <View style={styles.statsDivider} />
+
+          {/* Missions Section */}
+          <View style={[styles.statsSection, { flex: 1 }]}>
+            <View style={styles.statsIconContainer}>
+              <Hexagon color="#A855F7" size={28} />
+              <Ionicons name="diamond" size={14} color="#FFF" style={styles.statsIconOverlay} />
             </View>
-            <View style={styles.progressCard}>
-              <Text style={[styles.progressValue, styles.progressValueBlue]}>
-                {PROGRESSO.taxaAcerto}%
+            <View style={styles.statsInfo}>
+              <Text style={styles.statsLabel}>Missões diárias</Text>
+              <Text style={styles.statsValue}>
+                {dashboard?.daily_missions?.filter(m => m.completed).length || 0}/{dashboard?.daily_missions?.length || 0}
               </Text>
-              <Text style={styles.progressLabel}>Taxa de acerto</Text>
+              <View style={styles.statsProgressTrack}>
+                <View
+                  style={[
+                    styles.statsProgressFill,
+                    {
+                      width: `${(dashboard?.daily_missions?.filter(m => m.completed).length || 0) / (dashboard?.daily_missions?.length || 1) * 100}%`,
+                      backgroundColor: '#A855F7'
+                    }
+                  ]}
+                />
+              </View>
+              <Text style={styles.statsSubtext}>Concluídas</Text>
             </View>
+          </View>
+        </LinearGradient>
+
+        {/* ── Modo de Estudo ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>O que você vai estudar hoje?</Text>
+          <View style={styles.studyModesRow}>
+            {/* Sessão Rápida */}
+            <TouchableOpacity
+              style={styles.studyModeCard}
+              activeOpacity={0.8}
+              onPress={() => startQuickSession('quick')}
+            >
+              <LinearGradient
+                colors={['#4ADE80', '#1fa952ff']}
+                style={styles.studyModeGradient}
+              >
+                <View style={styles.studyModeLeft}>
+                  <View style={styles.studyModeIconCircle}>
+                    <Zap size={24} color="#FFF" fill="#FFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.studyModeTitle}>Sessão Rápida</Text>
+                    <Text style={styles.studyModeDesc}>3 a 10 questões</Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Simulado */}
+            <TouchableOpacity
+              style={styles.studyModeCard}
+              activeOpacity={0.8}
+              onPress={() => startQuickSession('simulated')}
+            >
+              <LinearGradient
+                colors={['#FB923C', '#EA580C']}
+                style={styles.studyModeGradient}
+              >
+                <View style={styles.studyModeLeft}>
+                  <View style={styles.studyModeIconCircle}>
+                    <Timer size={24} color="#FFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.studyModeTitle}>Simulado</Text>
+                    <Text style={styles.studyModeDesc}>Faça um simulado completo</Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Treino Livre */}
+            <TouchableOpacity
+              style={styles.studyModeCard}
+              activeOpacity={0.8}
+              onPress={() =>
+                router.push({
+                  pathname: '/estudo/filtros',
+                  params: {
+                    titulo: 'Treino Livre',
+                    materia: '',
+                  },
+                })
+              }
+            >
+              <LinearGradient
+                colors={['#61b9f8ff', '#0f65c1ff']}
+                style={styles.studyModeGradient}
+              >
+                <View style={styles.studyModeLeft}>
+                  <View style={styles.studyModeIconCircle}>
+                    <Shuffle size={24} color="#FFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.studyModeTitle}>Treino Livre</Text>
+                    <Text style={styles.studyModeDesc}>Escolha matéria e quantidade</Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
+
+        {/* ── Seu Desempenho ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Seu desempenho</Text>
+            <TouchableOpacity style={styles.seeMoreBtn}>
+              <Text style={styles.seeMoreText}>Ver mais</Text>
+              <ChevronRight size={14} color="#22C55E" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.performanceRow}>
+            {['portugues', 'matematica'].map((sub) => {
+              const config = SUBJECT_CONFIG[sub];
+              const stats = dashboard?.subject_progress?.find(s => s.subject === sub);
+              const accuracy = stats?.accuracy_pct || (sub === 'portugues' ? 72 : 48);
+              const total = stats?.total_questions || (sub === 'portugues' ? 125 : 110);
+              const correct = stats?.correct_answers || (sub === 'portugues' ? 90 : 53);
+
+              return (
+                <View key={sub} style={styles.performanceCard}>
+                  <View style={styles.performanceHeader}>
+                    <View style={[styles.performanceIconBox, { backgroundColor: config.corFundo }]}>
+                      <config.Icon size={18} color={config.corIcone} />
+                    </View>
+                    <Text style={styles.performanceTitle}>{config.titulo}</Text>
+                  </View>
+
+                  <View style={styles.performanceContent}>
+                    <View style={styles.circularProgressContainer}>
+                      <Svg width={100} height={60} viewBox="0 0 100 60">
+                        <Path
+                          d="M 10 50 A 40 40 0 0 1 90 50"
+                          fill="none"
+                          stroke="#F3F4F6"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                        />
+                        <Path
+                          d="M 10 50 A 40 40 0 0 1 90 50"
+                          fill="none"
+                          stroke={config.corIcone}
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(accuracy / 100) * 125.6} 200`}
+                        />
+                      </Svg>
+                      <View style={styles.circularProgressTextContainer}>
+                        <Text style={[styles.accuracyText, { color: '#111827' }]}>{accuracy.toFixed(0)}%</Text>
+                        <Text style={styles.accuracySubtext}>de acertos</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.performanceStats}>
+                      <Text style={styles.performanceStatsLabel}>Total de questões</Text>
+                      <Text style={styles.performanceStatsValue}>{total}</Text>
+                      <Text style={[styles.performanceStatsLabel, { marginTop: 8 }]}>Acertos</Text>
+                      <Text style={[styles.performanceStatsValue, { color: Colors.primary }]}>{correct}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {startingSession && (
+          <View style={styles.startingOverlay}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.startingText}>Preparando sessão...</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
-    gap: 20,
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  centered: { alignItems: 'center', justifyContent: 'center' },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20, gap: 16 },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.text,
-    letterSpacing: -0.5,
-  },
-  subGreeting: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginTop: 4,
-    fontWeight: '400',
-  },
-  streakBadge: {
+  headerUserBlock: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF7ED',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
+    gap: 10,
   },
-  streakText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#EA580C',
-  },
-
-  // Matérias
-  section: {
-    gap: 12,
-  },
-  materiaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  materiaIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  materiaInfo: {
-    flex: 1,
-  },
-  materiaTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: -0.2,
-  },
-  materiaDesc: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-
-  // Card Simulado
-  simuladoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  simuladoIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  simuladoInfo: {
-    flex: 1,
-  },
-  simuladoTitle: {
+  headerGreetingText: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.white,
-    letterSpacing: -0.3,
+    color: '#FFF',
+    maxWidth: 200,
   },
-  simuladoDesc: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  headerBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  diamondIconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#064E3B',
+    borderRadius: 8,
+    height: 100,
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statsSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+  },
+  statsDivider: {
+    width: 1,
+    height: '40%',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  statsIconContainer: {
+    height: 32,
+    width: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsIconOverlay: {
+    position: 'absolute',
+  },
+  statsInfo: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  statsLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  statsValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFF',
+  },
+  statsProgressTrack: {
+    width: '100%',
+    maxWidth: 120,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  statsProgressFill: {
+    height: '100%',
+    backgroundColor: '#FACC15',
+  },
+  statsSubtext: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
     marginTop: 2,
   },
 
-  // Progresso
-  progressSection: {
+  carouselContainer: {
+    height: 100,
+  },
+  bannerImage: {
+    width: width - 32,
+    height: 100,
+    borderRadius: 8,
+  },
+  pagination: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 8,
+    alignSelf: 'center',
+    gap: 6,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  paginationDotActive: {
+    width: 16,
+    backgroundColor: '#FFF',
+  },
+  section: { gap: 16 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  seeMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seeMoreText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#22C55E',
+  },
+
+  studyModesRow: {
+    flexDirection: 'column',
     gap: 12,
   },
-  progressTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: -0.3,
+  studyModeCard: {
+    height: 80,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  progressGrid: {
+  studyModeGradient: {
+    flex: 1,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  studyModeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  studyModeIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  studyModeTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+  studyModeDesc: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+
+  performanceRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  progressCard: {
+  performanceCard: {
     flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
-  progressValue: {
-    fontSize: 32,
+  performanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  performanceIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  performanceTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  performanceContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  circularProgressContainer: {
+    width: 100,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  circularProgressTextContainer: {
+    position: 'absolute',
+    bottom: 2,
+    alignItems: 'center',
+  },
+  accuracyText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  accuracySubtext: {
+    fontSize: 8,
+    color: '#6B7280',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  performanceStats: {
+    width: '100%',
+  },
+  performanceStatsLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  performanceStatsValue: {
+    fontSize: 16,
     fontWeight: '800',
-    color: Colors.primary,
-    letterSpacing: -1,
+    color: '#111827',
   },
-  progressValueBlue: {
-    color: '#3B82F6',
+
+  startingOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
-  progressLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 17,
-  },
+  startingText: { fontSize: 14, color: '#111827', fontWeight: '700', marginTop: 10 },
 });

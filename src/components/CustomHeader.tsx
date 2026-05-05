@@ -55,12 +55,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   leftSide: {
-    minWidth: 40,
     alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   rightSide: {
-    minWidth: 40,
     alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   sideSpacer: {
     width: 40,

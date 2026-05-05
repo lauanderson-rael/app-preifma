@@ -1,8 +1,10 @@
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,17 +18,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
+  const { register, isLoading, error, clearError } = useAuth();
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
+  const [usernameFocused, setUsernameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
-  const handleRegister = () => {
-    // TODO: implementar criação de conta real
-    console.log('Register:', { name, email, password });
+  const handleRegister = async () => {
+    if (!name.trim() || !username.trim() || !email.trim() || !password.trim()) return;
+    clearError();
+    try {
+      await register({ name: name.trim(), username: username.trim(), email: email.trim(), password });
+      router.replace('/(tabs)');
+    } catch {
+      // error already set in context
+    }
   };
 
   return (
@@ -73,6 +84,29 @@ export default function RegisterScreen() {
                   autoCorrect={false}
                   onFocus={() => setNameFocused(true)}
                   onBlur={() => setNameFocused(false)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Nome de usuário</Text>
+              <View style={[styles.inputWrapper, usernameFocused && styles.inputWrapperFocused]}>
+                <Ionicons
+                  name="at-outline"
+                  size={18}
+                  color={usernameFocused ? Colors.primary : Colors.textMuted}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="seu_username"
+                  placeholderTextColor={Colors.textMuted}
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onFocus={() => setUsernameFocused(true)}
+                  onBlur={() => setUsernameFocused(false)}
                 />
               </View>
             </View>
@@ -136,8 +170,24 @@ export default function RegisterScreen() {
             </View>
 
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleRegister} activeOpacity={0.85}>
-              <Text style={styles.primaryButtonText}>Criar Conta</Text>
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={16} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+              onPress={handleRegister}
+              activeOpacity={0.85}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <Text style={styles.primaryButtonText}>Criar Conta</Text>
+              )}
             </TouchableOpacity>
 
             {/* Link para Login */}
@@ -233,6 +283,22 @@ const styles = StyleSheet.create({
   eyeButton: {
     padding: 4,
   },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#DC2626',
+    flex: 1,
+    lineHeight: 18,
+  },
   primaryButton: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
@@ -245,6 +311,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 6,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.7,
   },
   primaryButtonText: {
     color: Colors.white,

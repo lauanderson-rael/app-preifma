@@ -81,11 +81,6 @@ export default function SimuladoScreen() {
   }, []);
 
   const questaoAtual = questoes[indiceAtual];
-  const respostaAtual = respostaAtual_fn();
-
-  function respostaAtual_fn() {
-    return respostas[questaoAtual?.id] ?? null;
-  }
 
   // ── Selecionar alternativa ─────────────────────────────
   const selecionarAlternativa = useCallback(

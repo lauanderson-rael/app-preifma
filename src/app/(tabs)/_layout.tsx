@@ -1,8 +1,8 @@
-import { Tabs } from 'expo-router';
+import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/Colors';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -23,8 +23,6 @@ function TabIcon({ name, activeName, color, focused }: TabIconProps) {
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  
-  // Evitar que os ícones fiquem "colados" ou abaixo na barra de navegação no Android
   const basePadding = Platform.OS === 'ios' ? 24 : 8;
   const paddingBottom = Math.max(basePadding, insets.bottom + (Platform.OS === 'android' ? 8 : 0));
   const height = (Platform.OS === 'ios' ? 84 : 64) + (paddingBottom - basePadding);
@@ -83,14 +81,28 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="provas"
         options={{
           title: 'Provas',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
-              name="download-outline"
-              activeName="download"
+              name="cloud-download-outline"
+              activeName="cloud-download"
+              color={color}
+              focused={focused}
+            />
+          ),
+        }}
+      /> */}
+      <Tabs.Screen
+        name="missoes"
+        options={{
+          title: 'Missões',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name="checkbox-outline"
+              activeName="checkbox"
               color={color}
               focused={focused}
             />

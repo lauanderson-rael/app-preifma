@@ -1,8 +1,10 @@
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,15 +19,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { login, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
-  const handleLogin = () => {
-    // TODO: implementar autenticação real
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) return;
+    clearError();
+    try {
+      await login(email.trim(), password);
+      router.replace('/(tabs)');
+    } catch {
+      // error already set in context
+    }
   };
 
   return (
@@ -110,8 +119,24 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} activeOpacity={0.85}>
-              <Text style={styles.primaryButtonText}>Entrar</Text>
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={16} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+              onPress={handleLogin}
+              activeOpacity={0.85}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <Text style={styles.primaryButtonText}>Entrar</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.linkRow}>
@@ -206,6 +231,22 @@ const styles = StyleSheet.create({
   eyeButton: {
     padding: 4,
   },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#DC2626',
+    flex: 1,
+    lineHeight: 18,
+  },
   primaryButton: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
@@ -218,6 +259,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 6,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.7,
   },
   primaryButtonText: {
     color: Colors.white,
