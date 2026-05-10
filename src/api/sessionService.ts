@@ -28,7 +28,7 @@ export const sessionService = {
     return data;
   },
 
-  /** Finalizar a sessão e obter resultado com XP, missões e conquistas */
+  /** Finalizar a sessão e obter resultado com XP e missões */
   async finishSession(
     sessionId: number,
     payload: FinishSessionPayload,

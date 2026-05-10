@@ -1,9 +1,9 @@
 import { examService } from "@/api/examService";
 import { sessionService } from "@/api/sessionService";
 import { Colors } from "@/constants/Colors";
+import { useAI } from "@/context/AIContext";
 import type { AnswerResult, Question } from "@/types/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useAudioPlayer } from "expo-audio";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import {
   Alert,
   Animated,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +21,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const SUBJECT_LABELS: Record<string, string> = {
+  portugues: "Português",
+  matematica: "Matemática",
+};
 export default function QuestaoEstudoScreen() {
   const params = useLocalSearchParams<{
     sessionId: string;
@@ -27,6 +32,9 @@ export default function QuestaoEstudoScreen() {
     questionIds: string;
     materia: string;
     titulo: string;
+    nivel: string;
+    anos: string;
+    tempoLimite: string;
   }>();
   const insets = useSafeAreaInsets();
 
@@ -52,6 +60,14 @@ export default function QuestaoEstudoScreen() {
   const [answered, setAnswered] = useState(false);
   const [lastResult, setLastResult] = useState<AnswerResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [loadingExplain, setLoadingExplain] = useState(false);
+  const { aiUsage, updateAIUsage } = useAI();
+
+  // Global Timer for Simulated Exams
+  const [timeLeft, setTimeLeft] = useState<number | null>(
+    params.tempoLimite ? Number(params.tempoLimite) : null
+  );
 
   // Timer per question
   const questionStartTime = useRef<number>(Date.now());
@@ -59,29 +75,30 @@ export default function QuestaoEstudoScreen() {
   // Feedback animation
   const feedbackAnim = useRef(new Animated.Value(0)).current;
 
-  const successSource = require("../../../assets/sounds/success.mp3");
-  const errorSource = require("../../../assets/sounds/error.mp3");
-  const playerSuccess = useAudioPlayer(successSource);
-  const playerError = useAudioPlayer(errorSource);
-
   useEffect(() => {
     const loadQuestions = async () => {
       try {
-        if (questionIds.length === 0) {
-          Alert.alert("Erro", "Nenhuma questão encontrada.", [
-            { text: "OK", onPress: () => router.back() },
-          ]);
-          return;
-        }
-        const loaded: Question[] = [];
-        for (const id of questionIds) {
-          try {
-            const q = await examService.getQuestion(id);
-            loaded.push(q);
-          } catch {
-            // skip questions that fail to load
+        let loaded: Question[] = [];
+
+        if (questionIds.length > 0) {
+          for (const id of questionIds) {
+            try {
+              const q = await examService.getQuestion(id);
+              loaded.push(q);
+            } catch { }
           }
+        } else {
+          // Fallback to random questions with filters (Estudo Livre)
+          const subject = params.materia as any;
+          const exam_type = params.nivel?.toLowerCase();
+
+          loaded = await examService.getRandomQuestions({
+            count: 10,
+            subject: subject || undefined,
+            exam_type: exam_type || undefined,
+          });
         }
+
         if (loaded.length === 0) {
           Alert.alert("Erro", "Não foi possível carregar as questões.", [
             { text: "OK", onPress: () => router.back() },
@@ -97,9 +114,37 @@ export default function QuestaoEstudoScreen() {
     loadQuestions();
   }, [questionIds]);
 
+  // Global Countdown Logic
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) {
+      if (timeLeft === 0) {
+        Alert.alert("Tempo Esgotado", "O tempo para o simulado acabou!", [
+          { text: "Ver Resultado", onPress: () => handleFinalizeSession() }
+        ]);
+      }
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setTimeLeft(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   const currentQuestion = questions[currentIndex] ?? null;
   const isLastQuestion = currentIndex >= questions.length - 1;
   const acertou = answered && lastResult?.is_correct === true;
+  const examName = currentQuestion?.exam_name ?? "Prova";
+  const subjectName =
+    SUBJECT_LABELS[currentQuestion?.subject ?? ""] ?? currentQuestion?.subject ?? "";
 
   const handleSelectAlt = (altId: number) => {
     if (answered) return;
@@ -130,11 +175,6 @@ export default function QuestaoEstudoScreen() {
 
       setLastResult(result);
       setAnswered(true);
-      // Sound
-      try {
-        if (result.is_correct) playerSuccess.play();
-        else playerError.play();
-      } catch {}
 
       // Animate feedback
       Animated.spring(feedbackAnim, {
@@ -150,7 +190,78 @@ export default function QuestaoEstudoScreen() {
     }
   };
 
+  const handleExplain = async () => {
+    if (!currentQuestion || loadingExplain) return;
+    setLoadingExplain(true);
+    try {
+      const startTime = Date.now();
+      const res = await examService.explainQuestion(currentQuestion.id);
+
+      // Handle different possible response structures
+      let rawExplanation = "";
+      if (typeof res === 'string') {
+        rawExplanation = res;
+      } else if (res && typeof res === 'object') {
+        rawExplanation = (res as any).explanation || (res as any).answer || (res as any).content || "";
+
+        // Update global AI usage if returned
+        if ((res as any).ai_usage) {
+          updateAIUsage((res as any).ai_usage);
+        }
+      }
+
+      const cleaned = rawExplanation
+        ? rawExplanation.replace(/\*\*/g, "").replace(/\*/g, "")
+        : "Nenhuma explicação fornecida pelo servidor.";
+
+      // Se a resposta veio do cache, vamos simular um tempo de "pensamento" da IA
+      // para melhorar a percepção do usuário (UX).
+      if (res && (res as any).cached) {
+        const elapsedTime = Date.now() - startTime;
+        const remainingDelay = 3000 - elapsedTime;
+        if (remainingDelay > 0) {
+          await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        }
+      }
+
+      setExplanation(cleaned);
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || "Não foi possível carregar a explicação.";
+      Alert.alert("Atenção", errorMsg);
+    } finally {
+      setLoadingExplain(false);
+    }
+  };
+
+  const handleFinalizeSession = async () => {
+    try {
+      const duration = Math.floor(
+        (Date.now() - (questionStartTime.current - 0)) / 1000,
+      );
+      const result = await sessionService.finishSession(sessionId!, {
+        duration_seconds: duration,
+      });
+      router.replace({
+        pathname: "/estudo/resultado",
+        params: {
+          sessionId: String(result.id),
+          acertos: String(result.correct_answers),
+          total: String(result.total_questions),
+          xp: String(result.xp_earned),
+          duracao: String(result.duration_seconds),
+          streak: String(result.streak),
+          missionsJson: JSON.stringify(result.missions_updated),
+        },
+      });
+    } catch {
+      Alert.alert("Erro", "Falha ao finalizar sessão.");
+    }
+  };
+
   const handleNext = async () => {
+    // Reset AI explanation
+    setExplanation(null);
+    setLoadingExplain(false);
     // Animate out feedback
     Animated.timing(feedbackAnim, {
       toValue: 0,
@@ -158,30 +269,7 @@ export default function QuestaoEstudoScreen() {
       useNativeDriver: true,
     }).start(async () => {
       if (isLastQuestion) {
-        // Finish session
-        try {
-          const duration = Math.floor(
-            (Date.now() - (questionStartTime.current - 0)) / 1000,
-          );
-          const result = await sessionService.finishSession(sessionId!, {
-            duration_seconds: duration,
-          });
-          router.replace({
-            pathname: "/estudo/resultado",
-            params: {
-              sessionId: String(result.id),
-              acertos: String(result.correct_answers),
-              total: String(result.total_questions),
-              xp: String(result.xp_earned),
-              duracao: String(result.duration_seconds),
-              streak: String(result.streak),
-              missionsJson: JSON.stringify(result.missions_updated),
-              achievementsJson: JSON.stringify(result.achievements_unlocked),
-            },
-          });
-        } catch {
-          Alert.alert("Erro", "Falha ao finalizar sessão.");
-        }
+        handleFinalizeSession();
       } else {
         setCurrentIndex((prev) => prev + 1);
         setSelectedAltId(null);
@@ -225,8 +313,25 @@ export default function QuestaoEstudoScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {titulo}
           </Text>
-          <Text style={styles.questaoCounter}>
-            {currentIndex + 1}/{questions.length}
+          <View style={styles.headerRightInfo}>
+            {timeLeft !== null && (
+              <View style={[styles.timerBadge, timeLeft < 600 && styles.timerWarning]}>
+                <Ionicons name="time-outline" size={14} color={Colors.white} />
+                <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+              </View>
+            )}
+            <Text style={styles.questaoCounter}>
+              {currentIndex + 1}/{questions.length}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.examMetaRow}>
+          <Text style={styles.examMetaText} numberOfLines={1}>
+            {examName}
+          </Text>
+          <Text style={styles.examMetaSeparator}>-</Text>
+          <Text style={styles.examMetaText} numberOfLines={1}>
+            {subjectName}
           </Text>
         </View>
         {/* Progress bar */}
@@ -352,8 +457,8 @@ export default function QuestaoEstudoScreen() {
                     style={[
                       styles.labelCirculo,
                       answered &&
-                        isCorrectFromAPI &&
-                        styles.labelCirculoCorreto,
+                      isCorrectFromAPI &&
+                      styles.labelCirculoCorreto,
                       answered && isWrong && styles.labelCirculoIncorreto,
                       isSelected && !answered && styles.labelCirculoSelected,
                     ]}
@@ -373,10 +478,10 @@ export default function QuestaoEstudoScreen() {
                     style={[
                       styles.alternativaTexto,
                       isSelected &&
-                        !answered && {
-                          color: Colors.primary,
-                          fontWeight: "700",
-                        },
+                      !answered && {
+                        color: Colors.primary,
+                        fontWeight: "700",
+                      },
                     ]}
                   >
                     {alt.text}
@@ -480,6 +585,60 @@ export default function QuestaoEstudoScreen() {
             </View>
           )}
 
+          {lastResult && !acertou && sessionType !== "simulated" && (
+            <View style={styles.aiTutorContainer}>
+              {explanation === null ? (
+                <View style={styles.btnExplainContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.btnExplain,
+                      { backgroundColor: "#8B5CF6", borderColor: "#8B5CF6" },
+                      (aiUsage?.remaining === 0) && { opacity: 0.5 }
+                    ]}
+                    onPress={handleExplain}
+                    disabled={loadingExplain || (aiUsage?.remaining === 0)}
+                  >
+                    {loadingExplain ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={20} color="#FFF" />
+                        <Text style={[styles.btnExplainText, { color: "#FFF" }]}>
+                          VER EXPLICAÇÃO COM IA
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  {aiUsage && (
+                    <Text style={styles.aiQuotaText}>
+                      Cota diária: {aiUsage.remaining}/{aiUsage.limit} restantes
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <View style={[styles.explanationBox, { borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
+                  <View style={styles.explanationHeader}>
+                    <Ionicons
+                      name="sparkles"
+                      size={18}
+                      color="#8B5CF6"
+                    />
+                    <Text style={[styles.explanationTitle, { color: '#7C3AED' }]}>
+                      Explicação do Tutor IA
+                    </Text>
+                  </View>
+                  <ScrollView
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={true}
+                    contentContainerStyle={{ flexGrow: 1 }}
+                  >
+                    <Text style={styles.explanationText}>{explanation}</Text>
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          )}
+
           <TouchableOpacity
             style={[
               styles.btnContinuar,
@@ -523,6 +682,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: Colors.white,
+  },
+  examMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 10,
+    paddingHorizontal: 8,
+  },
+  examMetaText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.9)",
+    textAlign: "center",
+    textTransform: "uppercase",
+    flexShrink: 1,
+  },
+  examMetaSeparator: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "rgba(255,255,255,0.65)",
+  },
+  headerRightInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timerWarning: {
+    backgroundColor: "#EF4444",
+  },
+  timerText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: Colors.white,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   questaoCounter: {
     fontSize: 13,
@@ -702,5 +906,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
     letterSpacing: 0.5,
+  },
+  aiTutorContainer: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  btnExplain: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+    gap: 8,
+  },
+  btnExplainText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  explanationBox: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(22,163,74,0.2)",
+    maxHeight: 250,
+  },
+  explanationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  explanationTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: Colors.primaryDark,
+  },
+  explanationText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#374151",
+  },
+  btnExplainContainer: {
+    gap: 6,
+    alignItems: 'center',
+  },
+  aiQuotaText: {
+
+    color: "#7C3AED",
+    fontWeight: "600",
+    opacity: 0.8,
   },
 });

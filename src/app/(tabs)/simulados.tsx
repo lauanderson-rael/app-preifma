@@ -15,155 +15,74 @@ import {
 
 type SimuladoStatus = 'concluido' | 'disponivel' | 'bloqueado';
 
-interface Simulado {
-  id: string;
-  titulo: string;
-  duracao: number;   // em minutos
-  questoes: number;
-  status: SimuladoStatus;
-  desempenho?: { acertos: number; total: number };
-}
-
-// Dados mockados por enquanto
-const SIMULADOS: Simulado[] = [
-  {
-    id: '1',
-    titulo: 'Simulado IFMA - Edição 1',
-    duracao: 180,
-    questoes: 40,
-    status: 'concluido',
-    desempenho: { acertos: 32, total: 40 },
-  },
-  {
-    id: '2',
-    titulo: 'Simulado IFMA - Edição 2',
-    duracao: 180,
-    questoes: 40,
-    status: 'disponivel',
-  },
-  {
-    id: '3',
-    titulo: 'Simulado IFMA - Edição 3',
-    duracao: 180,
-    questoes: 40,
-    status: 'bloqueado',
-  },
-];
-
 const INFO_BULLETS = [
-  '40 questões de múltipla escolha',
+  '30 questões de múltipla escolha',
+  '15 de Português e 15 de Matemática',
   '3 horas de duração',
-  'Feedback detalhado ao final',
-  'Desbloqueie novos simulados completando os anteriores',
+  'Cronômetro regressivo',
+  'Mix aleatório de questões',
 ];
 
-// Subcomponente: Card de Simulado
-function SimuladoCard({ item, onStart, }: {
-  item: Simulado;
-  onStart: (id: string) => void;
-}) {
-  const isBloqueado = item.status === 'bloqueado';
-  const isConcluido = item.status === 'concluido';
-  const porcentagem = item.desempenho
-    ? Math.round((item.desempenho.acertos / item.desempenho.total) * 100)
-    : null;
+const NIVEIS = ['Integrado', 'Subsequente', 'Concomitante'];
 
-  return (
-    <View style={[styles.card, isBloqueado && styles.cardBloqueado]}>
-      {/* Linha superior */}
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <Text style={[styles.cardTitle, isBloqueado && styles.textMuted]}>
-            {item.titulo}
-          </Text>
-          <View style={styles.cardMeta}>
-            <Ionicons
-              name="time-outline"
-              size={13}
-              color={isBloqueado ? Colors.textMuted : Colors.textSecondary}
-            />
-            <Text style={[styles.cardMetaText, isBloqueado && styles.textMuted]}>
-              {item.duracao} min
-            </Text>
-            <Text style={[styles.cardMetaDot, isBloqueado && styles.textMuted]}>•</Text>
-            <Text style={[styles.cardMetaText, isBloqueado && styles.textMuted]}>
-              {item.questoes} questões
-            </Text>
-          </View>
-        </View>
-
-
-        {isConcluido && (
-          <View style={styles.statusIconConcluido}>
-            <Ionicons name="checkmark-circle" size={26} color={Colors.primary} />
-          </View>
-        )}
-        {isBloqueado && (
-          <Ionicons name="lock-closed-outline" size={22} color={Colors.textMuted} />
-        )}
-      </View>
-
-      {/* Desempenho (concluído) */}
-      {isConcluido && item.desempenho && (
-        <View style={styles.desempenhoBox}>
-          <Text style={styles.desempenhoLabel}>Seu desempenho:</Text>
-          <Text style={styles.desempenhoValor}>
-            {item.desempenho.acertos}/{item.desempenho.total} acertos ({porcentagem}%)
-          </Text>
-        </View>
-      )}
-
-      {/* Botão iniciar (disponível) */}
-      {item.status === 'disponivel' && (
-        <TouchableOpacity
-          style={styles.iniciarBtn}
-          activeOpacity={0.8}
-          onPress={() => onStart(item.id)}
-        >
-          <Text style={styles.iniciarBtnText}>Iniciar simulado</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Botão refazer (concluido) - Para conseguir testar no mockup */}
-      {isConcluido && (
-        <TouchableOpacity
-          style={styles.refazerBtn}
-          activeOpacity={0.8}
-          onPress={() => onStart(item.id)}
-        >
-          <Text style={styles.refazerBtnText}>Refazer simulado</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Mensagem bloqueado */}
-      {isBloqueado && (
-        <Text style={styles.bloqueadoMsg}>
-          Complete os simulados anteriores para desbloquear
-        </Text>
-      )}
-    </View>
-  );
-}
+import { examService } from '@/api/examService';
+import { sessionService } from '@/api/sessionService';
+import { Alert } from 'react-native';
 
 // ── Tela principal ─────────────────────────────────────────
 export default function SimuladosScreen() {
   const [loading, setLoading] = useState(false);
-  const [confirmSimuladoId, setConfirmSimuladoId] = useState<string | null>(null);
+  const [nivelSelecionado, setNivelSelecionado] = useState<string>('Integrado');
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleStartSimulado = (id: string) => {
-    setConfirmSimuladoId(id);
-  };
-
-  const confirmStart = () => {
-    if (!confirmSimuladoId) return;
-    const id = confirmSimuladoId;
-    setConfirmSimuladoId(null);
+  const confirmStart = async () => {
+    setShowConfirm(false);
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      // 1. Buscar questões do simulado (30 questões: 15 port + 15 mat)
+      const res = await examService.getSimuladoQuestions(nivelSelecionado);
+      console.log("[Simulado] API Response Type:", typeof res, "IsArray:", Array.isArray(res));
+
+      // Tenta extrair a lista de questões independente do formato (array direto ou objeto com chave 'results' ou 'questions')
+      const questions = Array.isArray(res) 
+        ? res 
+        : (res && typeof res === 'object')
+          ? ((res as any).results || (res as any).questions || [])
+          : [];
+
+      if (questions.length === 0) {
+        Alert.alert('Aviso', 'Não recebemos questões para este simulado. Tente novamente em instantes.');
+        setLoading(false);
+        return;
+      }
+
+      const questionIds = questions.map(q => q.id);
+
+      // 2. Iniciar a sessão no backend
+      const session = await sessionService.startSession({
+        type: 'simulated',
+        question_ids: questionIds
+      });
+
+      // 3. Navegar para a tela de questões com o timer de 3h
+      router.push({
+        pathname: '/estudo/questao',
+        params: {
+          sessionId: String(session.id),
+          sessionType: 'simulated',
+          questionIds: questionIds.join(','),
+          titulo: `Simulado - ${nivelSelecionado}`,
+          nivel: nivelSelecionado,
+          tempoLimite: '10800', // 3 horas em segundos
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Erro', 'Falha ao preparar o simulado.');
+    } finally {
       setLoading(false);
-      router.push(`/simulado/${id}`);
-    }, 1500); //loading (1,5s)
+    }
   };
 
   return (
@@ -177,28 +96,28 @@ export default function SimuladosScreen() {
         }
       />
       {/* ── Modal de Confirmação customizado ── */}
-      <Modal visible={!!confirmSimuladoId} transparent animationType="fade">
+      <Modal visible={showConfirm} transparent animationType="fade">
         <View style={styles.loadingOverlay}>
           <View style={styles.confirmBox}>
             <View style={styles.confirmIconBox}>
-              <Ionicons name="alert-circle" size={32} color={Colors.primary} />
+              <Ionicons name="timer-outline" size={32} color={Colors.primary} />
             </View>
             <Text style={styles.confirmTitle}>Iniciar Simulado</Text>
             <Text style={styles.confirmDesc}>
-              Você tem 3 horas para concluir o simulado. O cronômetro não pode ser pausado. Deseja começar agora?
+              Você terá 3 horas para responder 30 questões. O cronômetro não pode ser pausado. Preparado?
             </Text>
             <View style={styles.confirmActions}>
               <TouchableOpacity
                 style={[styles.confirmBtn, styles.confirmBtnCancel]}
-                onPress={() => setConfirmSimuladoId(null)}
+                onPress={() => setShowConfirm(false)}
               >
-                <Text style={styles.confirmBtnCancelText}>Cancelar</Text>
+                <Text style={styles.confirmBtnCancelText}>Agora não</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.confirmBtn, styles.confirmBtnStart]}
                 onPress={confirmStart}
               >
-                <Text style={styles.confirmBtnStartText}>Começar</Text>
+                <Text style={styles.confirmBtnStartText}>Vamos lá!</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -210,7 +129,7 @@ export default function SimuladosScreen() {
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Preparando simulado...</Text>
+            <Text style={styles.loadingText}>Gerando prova...</Text>
           </View>
         </View>
       </Modal>
@@ -221,16 +140,16 @@ export default function SimuladosScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        {/* <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>Simulados</Text>
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Novo Simulado</Text>
           <Text style={styles.pageSubtitle}>
-            Teste seus conhecimentos com simulados completos
+            Pratique com questões reais misturadas de Português e Matemática.
           </Text>
-        </View> */}
+        </View>
 
-        {/* Card informativo verde */}
+        {/* Card informativo azul */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Como funcionam os simulados?</Text>
+          <Text style={styles.infoCardTitle}>Regras do Simulado</Text>
           <View style={styles.infoList}>
             {INFO_BULLETS.map((bullet, i) => (
               <View key={i} style={styles.infoListItem}>
@@ -241,16 +160,35 @@ export default function SimuladosScreen() {
           </View>
         </View>
 
-        {/* Lista de simulados */}
-        <View style={styles.list}>
-          {SIMULADOS.map((item) => (
-            <SimuladoCard
-              key={item.id}
-              item={item}
-              onStart={handleStartSimulado}
-            />
-          ))}
+        {/* Filtro de Modalidade */}
+        <View style={styles.sectionFiltro}>
+          <Text style={styles.sectionFiltroTitle}>Escolha sua modalidade:</Text>
+          <View style={styles.chipsContainer}>
+            {NIVEIS.map((nivel) => {
+              const isSelected = nivelSelecionado === nivel;
+              return (
+                <TouchableOpacity
+                  key={nivel}
+                  onPress={() => setNivelSelecionado(nivel)}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {nivel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.btnGigante}
+          onPress={() => setShowConfirm(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="rocket-outline" size={24} color={Colors.white} />
+          <Text style={styles.btnGiganteText}>Gerar Simulado</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -265,7 +203,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 40,
     gap: 20,
   },
@@ -382,8 +320,7 @@ const styles = StyleSheet.create({
 
   // Info card
   infoCard: {
-    backgroundColor: Colors.secondary
-    ,
+    backgroundColor: Colors.secondary,
     borderRadius: 16,
     padding: 20,
     gap: 12,
@@ -419,118 +356,64 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Lista de cards
-  list: {
-    gap: 14,
-  },
-
-  // Card individual
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 18,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardBloqueado: {
-    backgroundColor: '#F9FAFB',
-    shadowOpacity: 0,
-    elevation: 0,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  // Filtros
+  sectionFiltro: {
     gap: 12,
+    marginTop: 8,
   },
-  cardHeaderLeft: {
-    flex: 1,
-    gap: 6,
-  },
-  cardTitle: {
+  sectionFiltroTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     color: Colors.text,
-    letterSpacing: -0.3,
   },
-  cardMeta: {
+  chipsContainer: {
     flexDirection: 'row',
+    gap: 10,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    flex: 1,
     alignItems: 'center',
-    gap: 5,
   },
-  cardMetaText: {
-    fontSize: 12,
+  chipSelected: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: Colors.textSecondary,
   },
-  cardMetaDot: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  statusIconConcluido: {
-    marginTop: 2,
-  },
-  textMuted: {
-    color: Colors.textMuted,
-  },
-
-  // Desempenho
-  desempenhoBox: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 2,
-  },
-  desempenhoLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  desempenhoValor: {
-    fontSize: 15,
-    fontWeight: '700',
+  chipTextSelected: {
     color: Colors.primaryDark,
-    letterSpacing: -0.2,
-  },
-
-  // Botão iniciar
-  iniciarBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iniciarBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#ffffffff',
-    letterSpacing: 0.1,
-  },
-  refazerBtn: {
-    backgroundColor: '#d5d5d5ff',
-    borderRadius: 10,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  refazerBtnText: {
-    fontSize: 14,
     fontWeight: '700',
-    color: Colors.textSecondary,
-    letterSpacing: 0.1,
   },
 
-  // Mensagem bloqueado
-  bloqueadoMsg: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    lineHeight: 18,
+  // Botão Gigante
+  btnGigante: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 10,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  btnGiganteText: {
+    color: Colors.white,
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
 });

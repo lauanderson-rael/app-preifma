@@ -57,7 +57,9 @@ export interface Alternative {
 
 export interface Question {
   id: number;
-  exam: number;
+  exam?: number;
+  exam_id?: number;
+  exam_name?: string;
   subject: string;
   number: number;
   statement: string;
@@ -123,7 +125,6 @@ export interface SessionResult {
   duration_seconds: number;
   streak: number;
   missions_updated: MissionProgress[];
-  achievements_unlocked: Achievement[];
 }
 
 export interface SessionHistoryItem {
@@ -156,27 +157,27 @@ export interface MissionProgress {
   xp_claimed: boolean;
 }
 
-// ── Achievements ──────────────────────────────────────────────
-export interface Achievement {
-  id: number;
-  title: string;
-  description: string;
-  icon: string;
-  xp_reward: number;
-}
 
-export interface UserAchievement {
-  id: number;
-  achievement: Achievement;
-  unlocked_at: string;
-}
 
 // ── Progress ──────────────────────────────────────────────────
 export interface SubjectProgress {
   subject: string;
-  total_questions: number;
+  questions_answered: number;
   correct_answers: number;
-  accuracy_pct: number;
+  accuracy: number;
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export interface AIUsage {
+  used: number;
+  limit: number;
+  remaining: number;
 }
 
 // ── Dashboard ─────────────────────────────────────────────────
@@ -186,6 +187,7 @@ export interface Dashboard {
   xp: number;
   progress_pct: number;
   xp_to_next_level: number;
+  ai_usage: AIUsage;
   daily_missions: MissionProgress[];
   recent_sessions: SessionHistoryItem[];
   subject_progress: SubjectProgress[];

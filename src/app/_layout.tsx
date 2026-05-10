@@ -1,3 +1,4 @@
+import { AIProvider } from '@/context/AIContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { SessionProvider } from '@/context/SessionContext';
 import { Slot, router, useSegments } from 'expo-router';
@@ -40,9 +41,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
-        <SessionProvider>
-          <AuthGate />
-        </SessionProvider>
+        <AIProvider>
+          <SessionProvider>
+            <AuthGate />
+          </SessionProvider>
+        </AIProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

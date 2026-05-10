@@ -1,9 +1,10 @@
+import { dashboardService } from '@/api/dashboardService';
+import { userService } from '@/api/userService';
 import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
-import { userService } from '@/api/userService';
-import { achievementService } from '@/api/achievementService';
-import { progressService } from '@/api/progressService';
+import { useAI } from '@/context/AIContext';
 import { useAuth } from '@/context/AuthContext';
+import type { SessionHistoryItem, UserStats } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -17,41 +18,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import type { UserStats, SubjectProgress, UserAchievement } from '@/types/api';
 
-function BarraProgresso({ label, valor, cor }: { label: string; valor: number; cor: string }) {
-  return (
-    <View style={styles.barraContainer}>
-      <View style={styles.barraHeader}>
-        <Text style={styles.barraLabel}>{label}</Text>
-        <Text style={[styles.barraValor, { color: cor }]}>{valor.toFixed(0)}%</Text>
-      </View>
-      <View style={styles.barraFundo}>
-        <View style={[styles.barraPreenchimento, { width: `${valor}%` as any, backgroundColor: cor }]} />
-      </View>
-    </View>
-  );
-}
 
 export default function PerfilScreen() {
   const { user, logout, refreshUser } = useAuth();
+  const { aiUsage } = useAI();
   const [stats, setStats] = useState<UserStats | null>(null);
-  const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([]);
-  const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
+  const [recentSessions, setRecentSessions] = useState<SessionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [statsRes, progressRes, achievementsRes] = await Promise.allSettled([
+      const [statsRes, dashRes] = await Promise.allSettled([
         userService.getStats(),
-        progressService.getSubjectProgress(),
-        achievementService.getUserAchievements(),
+        dashboardService.getDashboard(),
       ]);
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
-      if (progressRes.status === 'fulfilled') setSubjectProgress(progressRes.value);
-      if (achievementsRes.status === 'fulfilled') setUserAchievements(achievementsRes.value);
+      if (dashRes.status === 'fulfilled') setRecentSessions(dashRes.value.recent_sessions || []);
     } catch (err) {
       console.error('Erro ao carregar perfil:', err);
     } finally {
@@ -87,9 +72,6 @@ export default function PerfilScreen() {
     );
   }
 
-  const subjectLabel: Record<string, string> = { portugues: 'Português', matematica: 'Matemática' };
-  const subjectColor: Record<string, string> = { portugues: Colors.primary, matematica: '#3B82F6' };
-
   return (
     <View style={styles.safe}>
       <CustomHeader
@@ -97,11 +79,6 @@ export default function PerfilScreen() {
         leftContent={
           <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
-          </TouchableOpacity>
-        }
-        rightContent={
-          <TouchableOpacity onPress={() => router.push('/perfil/configuracoes')} style={{ padding: 4, marginRight: -4 }}>
-            <Ionicons name="settings-outline" size={24} color={Colors.white} />
           </TouchableOpacity>
         }
       />
@@ -134,14 +111,14 @@ export default function PerfilScreen() {
                 <Text style={styles.xpText}>{stats.xp || 0} XP</Text>
               </View>
               <View style={styles.xpTrack}>
-                <View 
+                <View
                   style={[
-                    styles.xpFill, 
-                    { 
+                    styles.xpFill,
+                    {
                       width: `${stats.progress_pct || 0}%` as any,
                       minWidth: (stats.progress_pct || 0) > 0 ? 4 : 0
                     }
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.xpNext}>Faltam {stats.xp_to_next_level || 0} XP para o próximo nível</Text>
@@ -158,66 +135,70 @@ export default function PerfilScreen() {
               </View>
             </View>
           )}
+
+          {/* Uso de IA Simplificado */}
+          {aiUsage && (
+            <View style={styles.aiBadge}>
+              <Ionicons name="sparkles" size={24} color="#8B5CF6" />
+              <View>
+                <Text style={styles.aiBadgeTitle}>Você tem {aiUsage.remaining}/{aiUsage.limit} explicações!</Text>
+                <Text style={styles.aiBadgeSubtitle}>As explicações com IA resetam diariamente.</Text>
+              </View>
+            </View>
+          )}
         </View>
 
-        {/* ── Estatísticas ── */}
-        {stats && (
-          <View style={styles.card}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="trending-up" size={18} color={Colors.primary} />
-              <Text style={styles.cardTitle}>Estatísticas de Desempenho</Text>
-            </View>
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <Text style={[styles.statValue, { color: Colors.primary }]}>{stats.total_questions || 0}</Text>
-                <Text style={styles.statLabel}>Questões{'\n'}respondidas</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={[styles.statValue, { color: '#3B82F6' }]}>{Number(stats.accuracy_pct || 0).toFixed(0)}%</Text>
-                <Text style={styles.statLabel}>Taxa de acerto</Text>
-              </View>
-            </View>
 
-            {/* Progresso por matéria */}
-            {subjectProgress.length > 0 && (
-              <View style={styles.barras}>
-                {subjectProgress.map((sp) => (
-                  <BarraProgresso
-                    key={sp.subject}
-                    label={subjectLabel[sp.subject] ?? sp.subject}
-                    valor={Number(sp.accuracy_pct || 0)}
-                    cor={subjectColor[sp.subject] ?? Colors.primary}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+        {/* ── Histórico de Atividades ── */}
+        <View style={styles.card}>
+          <View style={styles.cardTitleRow}>
 
-        {/* ── Conquistas ── */}
-        {userAchievements.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="trophy-outline" size={18} color={Colors.primary} />
-              <Text style={styles.cardTitle}>Conquistas ({userAchievements.length})</Text>
-            </View>
-            <View style={styles.conquistasGrid}>
-              {userAchievements.slice(0, 6).map((ua) => (
-                <View key={ua.id} style={styles.conquistaItem}>
-                  <View style={styles.conquistaIconBox}>
-                    <Text style={styles.conquistaEmoji}>{ua.achievement.icon}</Text>
-                  </View>
-                  <Text style={styles.conquistaLabel} numberOfLines={2}>{ua.achievement.title}</Text>
-                </View>
-              ))}
-            </View>
-            {userAchievements.length > 6 && (
-              <TouchableOpacity onPress={() => router.push('/conquistas' as any)}>
-                <Text style={styles.verTodas}>Ver todas as conquistas →</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.cardTitle}>Histórico de Atividades</Text>
           </View>
-        )}
+
+          {recentSessions.length > 0 ? (
+            <View style={styles.historyList}>
+              {recentSessions.map((session, index) => {
+                const date = new Date(session.created_at);
+                const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+
+                const typeInfo = {
+                  quick: { icon: 'flash-outline', label: 'Rápida', color: '#22C55E' },
+                  simulated: { icon: 'clipboard-outline', label: 'Simulado', color: '#F59E0B' },
+                  practice: { icon: 'library-outline', label: 'Treino Livre', color: '#3B82F6' },
+                }[session.type] || { icon: 'help-circle-outline', label: 'Sessão', color: '#6B7280' };
+
+                return (
+                  <React.Fragment key={session.id}>
+                    <View style={styles.historyItem}>
+                      <View style={[styles.historyIcon, { backgroundColor: typeInfo.color + '25' }]}>
+                        <Ionicons name={typeInfo.icon as any} size={18} color={typeInfo.color} />
+                      </View>
+                      <View style={styles.historyMain}>
+                        <View style={styles.historyTitleRow}>
+                          <Text style={styles.historyTitle}>{typeInfo.label}</Text>
+                        </View>
+                        <Text style={styles.historySubtitle}>
+                          {dateStr} • {session.correct_answers}/{session.total_questions} acertos
+                        </Text>
+                      </View>
+                      <View style={styles.historyRight}>
+                        <Text style={[styles.historyAccuracy, { color: session.accuracy >= 60 ? '#16A34A' : '#EF4444' }]}>
+                          {Math.round(session.accuracy)}%
+                        </Text>
+                        <Text style={styles.historyXp}>+{session.xp_gained} XP</Text>
+                      </View>
+                    </View>
+                    {index < recentSessions.length - 1 && <View style={styles.historyDivider} />}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>Nenhuma atividade recente encontrada.</Text>
+          )}
+        </View>
 
         {/* ── Botão Sair ── */}
         <TouchableOpacity style={styles.sairBtn} onPress={handleSair} activeOpacity={0.8}>
@@ -233,7 +214,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   centered: { alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 16 },
+  content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40, gap: 16 },
 
   profileCard: {
     backgroundColor: Colors.white, borderRadius: 20, padding: 20, gap: 16,
@@ -267,35 +248,37 @@ const styles = StyleSheet.create({
   ofensivaTitle: { fontSize: 14, fontWeight: '700', color: '#EA580C' },
   ofensivaSubtitle: { fontSize: 12, color: '#C2410C', marginTop: 1 },
 
+  aiBadge: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F3FF',
+    borderRadius: 12, padding: 14, gap: 10,
+  },
+  aiBadgeTitle: { fontSize: 14, fontWeight: '700', color: '#7C3AED' },
+  aiBadgeSubtitle: { fontSize: 12, color: '#6D28D9', marginTop: 1 },
+
   card: {
     backgroundColor: Colors.white, borderRadius: 20, padding: 20, gap: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: Colors.text },
-  statsGrid: { flexDirection: 'row', gap: 12 },
-  statBox: {
-    flex: 1, backgroundColor: '#F0FDF4', borderRadius: 14, padding: 16, alignItems: 'center', gap: 4,
-  },
-  statValue: { fontSize: 30, fontWeight: '800', letterSpacing: -1 },
-  statLabel: { fontSize: 11, color: Colors.textSecondary, textAlign: 'center', lineHeight: 16 },
-  barras: { gap: 14 },
-  barraContainer: { gap: 6 },
-  barraHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  barraLabel: { fontSize: 13, fontWeight: '600', color: Colors.text },
-  barraValor: { fontSize: 13, fontWeight: '700' },
-  barraFundo: { height: 8, backgroundColor: '#F3F4F6', borderRadius: 99, overflow: 'hidden' },
-  barraPreenchimento: { height: '100%', borderRadius: 99 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, flex: 1 },
+  historySubtitle: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
-  conquistasGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  conquistaItem: { alignItems: 'center', gap: 6, width: '30%' },
-  conquistaIconBox: {
-    width: 54, height: 54, borderRadius: 14, backgroundColor: Colors.primaryLight,
-    alignItems: 'center', justifyContent: 'center',
+  historyList: { gap: 14 },
+  historyItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  historyIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  historyMain: { flex: 1, gap: 1 },
+  historyTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginRight: 8 },
+  historyTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
+  historyDate: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
+  historyRight: { alignItems: 'flex-end', gap: 2 },
+  historyAccuracy: { fontSize: 14, fontWeight: '800' },
+  historyXp: { fontSize: 11, fontWeight: '600', color: '#A855F7' },
+  emptyText: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', paddingVertical: 10 },
+  historyDivider: {
+    height: 1.2,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 6,
   },
-  conquistaEmoji: { fontSize: 26 },
-  conquistaLabel: { fontSize: 10, fontWeight: '600', color: Colors.textSecondary, textAlign: 'center', lineHeight: 14 },
-  verTodas: { fontSize: 13, color: Colors.primary, fontWeight: '600', textAlign: 'center' },
 
   sairBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

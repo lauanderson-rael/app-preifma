@@ -1,5 +1,5 @@
-import apiClient from './client';
 import type { Exam, Question } from '../types/api';
+import apiClient from './client';
 
 export const examService = {
   /** Listar todas as provas */
@@ -35,6 +35,20 @@ export const examService = {
     const { data } = await apiClient.get<Question[]>('/questions/random/', {
       params,
     });
+    return data;
+  },
+
+  /** Gerar simulado dinâmico (15 Português + 15 Matemática) */
+  async getSimuladoQuestions(examType: string): Promise<Question[]> {
+    const { data } = await apiClient.get<Question[]>('/questions/simulated/', {
+      params: { exam_type: examType.toLowerCase() }
+    });
+    return data;
+  },
+
+  /** Solicitar explicação por IA */
+  async explainQuestion(id: number): Promise<any> {
+    const { data } = await apiClient.get<any>(`/questions/${id}/explain/`);
     return data;
   },
 };

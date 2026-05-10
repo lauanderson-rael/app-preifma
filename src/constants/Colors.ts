@@ -17,6 +17,6 @@ export const Colors = {
   border: '#D1D5DB',
   borderFocus: '#22C55E',
   inputBackground: '#FFFFFF',
-  error: '#EF4444',
+  error: '#EF4444', 
   shadow: 'rgba(0, 0, 0, 0.08)',
 };

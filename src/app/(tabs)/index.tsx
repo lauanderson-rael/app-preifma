@@ -1,15 +1,17 @@
 import { dashboardService } from '@/api/dashboardService';
 import { examService } from '@/api/examService';
+import { progressService } from '@/api/progressService';
 import { sessionService } from '@/api/sessionService';
 import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
+import { useAI } from '@/context/AIContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Dashboard, SessionType } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Book, Calculator, ChevronRight, Gem, Shuffle, Timer, Zap } from 'lucide-react-native';
+import { Book, Calculator, ChevronRight, Shuffle, Timer, Zap } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -56,7 +58,9 @@ const SUBJECT_CONFIG: Record<string, { titulo: string; Icon: any; corFundo: stri
 
 export default function HomeScreen() {
   const { user, refreshUser } = useAuth();
+  const { updateAIUsage } = useAI();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([]);
   const [activeBanner, setActiveBanner] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,11 +68,16 @@ export default function HomeScreen() {
 
   const loadDashboard = useCallback(async () => {
     try {
-      const [data] = await Promise.all([
+      const [dashData, progressData] = await Promise.all([
         dashboardService.getDashboard(),
+        progressService.getSubjectProgress(),
         refreshUser(),
       ]);
-      setDashboard(data);
+      setDashboard(dashData);
+      setSubjectProgress(progressData);
+      if (dashData.ai_usage) {
+        updateAIUsage(dashData.ai_usage);
+      }
     } catch (err) {
       console.error('Erro ao carregar dashboard:', err);
     } finally {
@@ -143,14 +152,18 @@ export default function HomeScreen() {
               <View style={styles.diamondIconWrapper}>
                 <Ionicons name="flame" size={14} color="#FB923C" />
               </View>
-              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>70</Text>
+              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>
+                {user?.streak ?? dashboard?.streak ?? 0}
+              </Text>
             </View>
 
             <View style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}>
               <View style={styles.diamondIconWrapper}>
-                <Gem size={14} color="#0EA5E9" fill="#0EA5E9" />
+                <Ionicons name="star" size={14} color="#FACC15" />
               </View>
-              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>70</Text>
+              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>
+                Nv. {user?.level ?? dashboard?.level ?? 1}
+              </Text>
             </View>
           </View>
         }
@@ -216,17 +229,22 @@ export default function HomeScreen() {
             <View style={styles.statsInfo}>
               <Text style={styles.statsLabel}>XP Total</Text>
               <Text style={styles.statsValue} numberOfLines={1}>
-                {(dashboard?.xp || 0).toLocaleString('pt-BR')}
+                {(user?.xp ?? dashboard?.xp ?? 0).toLocaleString('pt-BR')}
               </Text>
               <View style={styles.statsProgressTrack}>
                 <View
                   style={[
                     styles.statsProgressFill,
-                    { width: `${dashboard?.progress_pct ?? 0}%` }
+                    {
+                      width: `${user?.progress_pct ?? dashboard?.progress_pct ?? 0}%` as any,
+                      minWidth: (user?.progress_pct ?? dashboard?.progress_pct ?? 0) > 0 ? 6 : 0
+                    }
                   ]}
                 />
               </View>
-              <Text style={styles.statsSubtext}>Meta atual: {(dashboard?.xp ?? 0) + (dashboard?.xp_to_next_level ?? 0)} XP</Text>
+              <Text style={styles.statsSubtext}>
+                Meta atual: {((user?.xp ?? dashboard?.xp ?? 0) + (user?.xp_to_next_level ?? dashboard?.xp_to_next_level ?? 0)).toLocaleString('pt-BR')} XP
+              </Text>
             </View>
           </View>
 
@@ -290,7 +308,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.studyModeCard}
               activeOpacity={0.8}
-              onPress={() => startQuickSession('simulated')}
+              onPress={() => router.push('/(tabs)/simulados')}
             >
               <LinearGradient
                 colors={['#FB923C', '#EA580C']}
@@ -346,18 +364,15 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Seu desempenho</Text>
-            <TouchableOpacity style={styles.seeMoreBtn}>
-              <Text style={styles.seeMoreText}>Ver mais</Text>
-              <ChevronRight size={14} color="#22C55E" />
-            </TouchableOpacity>
+
           </View>
 
           <View style={styles.performanceRow}>
             {['portugues', 'matematica'].map((sub) => {
               const config = SUBJECT_CONFIG[sub];
-              const stats = dashboard?.subject_progress?.find(s => s.subject === sub);
-              const accuracy = stats?.accuracy_pct || (sub === 'portugues' ? 72 : 48);
-              const total = stats?.total_questions || (sub === 'portugues' ? 125 : 110);
+              const stats = subjectProgress?.find(s => s.subject === sub);
+              const accuracy = stats?.accuracy || (sub === 'portugues' ? 72 : 48);
+              const total = stats?.questions_answered || (sub === 'portugues' ? 125 : 110);
               const correct = stats?.correct_answers || (sub === 'portugues' ? 90 : 53);
 
               return (
@@ -462,8 +477,9 @@ const styles = StyleSheet.create({
   statsCard: {
     flexDirection: 'row',
     backgroundColor: '#064E3B',
-    borderRadius: 8,
-    height: 100,
+    borderRadius: 16,
+    minHeight: 110,
+    paddingVertical: 18,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -559,16 +575,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#111827',
-  },
-  seeMoreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  seeMoreText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#22C55E',
   },
 
   studyModesRow: {

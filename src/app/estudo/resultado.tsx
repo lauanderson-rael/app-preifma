@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Achievement, MissionProgress } from '@/types/api';
+import type { MissionProgress } from '@/types/api';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -24,7 +24,6 @@ export default function ResultadoScreen() {
     duracao: string;
     streak: string;
     missionsJson: string;
-    achievementsJson: string;
   }>();
 
   const acertos = Number(params.acertos ?? 0);
@@ -37,9 +36,7 @@ export default function ResultadoScreen() {
   const missions: MissionProgress[] = (() => {
     try { return JSON.parse(params.missionsJson ?? '[]'); } catch { return []; }
   })();
-  const achievements: Achievement[] = (() => {
-    try { return JSON.parse(params.achievementsJson ?? '[]'); } catch { return []; }
-  })();
+
 
   // Entry animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -103,26 +100,7 @@ export default function ResultadoScreen() {
           </View>
         </View>
 
-        {/* Conquistas desbloqueadas */}
-        {achievements.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏆 Conquistas Desbloqueadas!</Text>
-            {achievements.map((a) => (
-              <View key={a.id} style={styles.achievementCard}>
-                <View style={styles.achievementIconBox}>
-                  <Text style={styles.achievementIcon}>{a.icon}</Text>
-                </View>
-                <View style={styles.achievementInfo}>
-                  <Text style={styles.achievementTitle}>{a.title}</Text>
-                  <Text style={styles.achievementDesc}>{a.description}</Text>
-                </View>
-                <View style={styles.achievementXp}>
-                  <Text style={styles.achievementXpText}>+{a.xp_reward} XP</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+
 
         {/* Missões atualizadas */}
         {missions.length > 0 && (
@@ -201,21 +179,7 @@ const styles = StyleSheet.create({
   section: { gap: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: Colors.text },
 
-  achievementCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: Colors.white, borderRadius: 16, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
-  },
-  achievementIconBox: {
-    width: 48, height: 48, borderRadius: 12, backgroundColor: Colors.primaryLight,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  achievementIcon: { fontSize: 24 },
-  achievementInfo: { flex: 1, gap: 2 },
-  achievementTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
-  achievementDesc: { fontSize: 12, color: Colors.textSecondary },
-  achievementXp: { backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  achievementXpText: { fontSize: 12, fontWeight: '700', color: '#92400E' },
+
 
   missionCard: {
     backgroundColor: Colors.white, borderRadius: 14, padding: 16, gap: 8,
