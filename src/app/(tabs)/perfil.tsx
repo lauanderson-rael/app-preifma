@@ -125,16 +125,6 @@ export default function PerfilScreen() {
             </View>
           )}
 
-          {/* Streak badge */}
-          {stats && (
-            <View style={styles.ofensivaBadge}>
-              <Ionicons name="flame" size={24} color="#EA580C" />
-              <View>
-                <Text style={styles.ofensivaTitle}>{stats.streak || 0} dias de ofensiva!</Text>
-                <Text style={styles.ofensivaSubtitle}>Continue estudando para manter.</Text>
-              </View>
-            </View>
-          )}
 
           {/* Uso de IA Simplificado */}
           {aiUsage && (
@@ -160,7 +150,7 @@ export default function PerfilScreen() {
             <View style={styles.historyList}>
               {recentSessions.map((session, index) => {
                 const date = new Date(session.created_at);
-                const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 
                 const typeInfo = {
@@ -241,12 +231,6 @@ const styles = StyleSheet.create({
   xpFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 99 },
   xpNext: { fontSize: 11, color: Colors.textSecondary },
 
-  ofensivaBadge: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF7ED',
-    borderRadius: 12, padding: 14, gap: 10,
-  },
-  ofensivaTitle: { fontSize: 14, fontWeight: '700', color: '#EA580C' },
-  ofensivaSubtitle: { fontSize: 12, color: '#C2410C', marginTop: 1 },
 
   aiBadge: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F3FF',

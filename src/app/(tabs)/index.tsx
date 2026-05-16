@@ -99,7 +99,10 @@ export default function HomeScreen() {
     if (startingSession) return;
     setStartingSession(true);
     try {
-      const count = type === 'quick' ? 5 : 10;
+      const QUICK_COUNTS = [3, 5, 7, 10];
+      const count = type === 'quick'
+        ? QUICK_COUNTS[Math.floor(Math.random() * QUICK_COUNTS.length)]
+        : 10;
       const questions = await examService.getRandomQuestions({ count, subject });
       if (!questions || questions.length === 0) {
         Alert.alert('Sem questões', 'Não há questões disponíveis para este filtro.');
@@ -148,15 +151,6 @@ export default function HomeScreen() {
         }
         rightContent={
           <View style={styles.headerIcons}>
-            <View style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}>
-              <View style={styles.diamondIconWrapper}>
-                <Ionicons name="flame" size={14} color="#FB923C" />
-              </View>
-              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>
-                {user?.streak ?? dashboard?.streak ?? 0}
-              </Text>
-            </View>
-
             <View style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}>
               <View style={styles.diamondIconWrapper}>
                 <Ionicons name="star" size={14} color="#FACC15" />
@@ -254,7 +248,7 @@ export default function HomeScreen() {
           <View style={[styles.statsSection, { flex: 1 }]}>
             <View style={styles.statsIconContainer}>
               <Hexagon color="#A855F7" size={28} />
-              <Ionicons name="diamond" size={14} color="#FFF" style={styles.statsIconOverlay} />
+              <Ionicons name="flag" size={14} color="#FFF" style={styles.statsIconOverlay} />
             </View>
             <View style={styles.statsInfo}>
               <Text style={styles.statsLabel}>Missões diárias</Text>
@@ -371,9 +365,9 @@ export default function HomeScreen() {
             {['portugues', 'matematica'].map((sub) => {
               const config = SUBJECT_CONFIG[sub];
               const stats = subjectProgress?.find(s => s.subject === sub);
-              const accuracy = stats?.accuracy || (sub === 'portugues' ? 72 : 48);
-              const total = stats?.questions_answered || (sub === 'portugues' ? 125 : 110);
-              const correct = stats?.correct_answers || (sub === 'portugues' ? 90 : 53);
+              const accuracy = stats?.accuracy ?? 0;
+              const total = stats?.questions_answered ?? 0;
+              const correct = stats?.correct_answers ?? 0;
 
               return (
                 <View key={sub} style={styles.performanceCard}>

@@ -21,24 +21,18 @@ export interface UserProfile {
   level: number;
   progress_pct: number;
   xp_to_next_level: number;
-  streak: number;
 }
 
 export interface UserStats {
   total_questions: number;
   total_correct: number;
   accuracy_pct: number;
-  streak: number;
   level: number;
   xp: number;
   progress_pct: number;
   xp_to_next_level: number;
 }
 
-export interface StreakInfo {
-  streak: number;
-  last_study_date: string | null;
-}
 
 // ── Exams & Questions ─────────────────────────────────────────
 export interface Exam {
@@ -123,7 +117,6 @@ export interface SessionResult {
   accuracy_pct: number;
   xp_earned: number;
   duration_seconds: number;
-  streak: number;
   missions_updated: MissionProgress[];
 }
 
@@ -182,7 +175,6 @@ export interface AIUsage {
 
 // ── Dashboard ─────────────────────────────────────────────────
 export interface Dashboard {
-  streak: number;
   level: number;
   xp: number;
   progress_pct: number;

@@ -22,7 +22,6 @@ export default function ResultadoScreen() {
     total: string;
     xp: string;
     duracao: string;
-    streak: string;
     missionsJson: string;
   }>();
 
@@ -30,7 +29,6 @@ export default function ResultadoScreen() {
   const total = Number(params.total ?? 0);
   const xp = Number(params.xp ?? 0);
   const duracao = Number(params.duracao ?? 0);
-  const streak = Number(params.streak ?? 0);
   const accuracy = total > 0 ? Math.round((acertos / total) * 100) : 0;
 
   const missions: MissionProgress[] = (() => {
@@ -93,11 +91,6 @@ export default function ResultadoScreen() {
             <Text style={styles.statValue}>{formatDuration(duracao)}</Text>
             <Text style={styles.statLabel}>Duração</Text>
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="flame" size={22} color="#EA580C" />
-            <Text style={styles.statValue}>{streak}</Text>
-            <Text style={styles.statLabel}>Streak</Text>
-          </View>
         </View>
 
 
@@ -106,24 +99,26 @@ export default function ResultadoScreen() {
         {missions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📅 Progresso de Missões</Text>
-            {missions.map((mp) => {
+            {missions.map((mp: any) => {
               const mission = mp.mission;
-              const target = mission?.target ?? mp.target ?? null;
-              const title = mission?.title ?? mp.title ?? 'Missão atualizada';
-              const pct = target && target > 0
-                ? Math.min((mp.progress / target) * 100, 100)
-                : (mp.completed ? 100 : 0);
+              const target = mission?.target ?? mp.target ?? mp.goal ?? 0;
+              const progress = mp.progress ?? mp.current ?? 0;
+              const title = mission?.title ?? mp.title ?? mp.description ?? 'Missão';
+              const completed = mp.completed ?? false;
+              const pct = target > 0
+                ? Math.min((progress / target) * 100, 100)
+                : (completed ? 100 : 0);
               return (
-                <View key={mp.id} style={styles.missionCard}>
+                <View key={mp.id ?? mp.mission_id ?? title} style={styles.missionCard}>
                   <View style={styles.missionHeader}>
                     <Text style={styles.missionTitle}>{title}</Text>
-                    {mp.completed && <Text style={styles.missionComplete}>✓ Concluída!</Text>}
+                    {completed && <Text style={styles.missionComplete}>✓ Concluída!</Text>}
                   </View>
                   <View style={styles.missionTrack}>
                     <View style={[styles.missionFill, { width: `${pct}%` as any }]} />
                   </View>
                   <Text style={styles.missionSub}>
-                    {target ? `${mp.progress}/${target}` : `${mp.progress} pontos`}
+                    {target > 0 ? `${progress}/${target}` : `${progress} pontos`}
                   </Text>
                 </View>
               );
@@ -167,9 +162,9 @@ const styles = StyleSheet.create({
   heroAccuracy: { fontSize: 56, fontWeight: '900', letterSpacing: -2 },
   heroSub: { fontSize: 14, color: Colors.textSecondary },
 
-  statsRow: { flexDirection: 'row', gap: 10 },
+  statsRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   statCard: {
-    flex: 1, backgroundColor: Colors.white, borderRadius: 16, padding: 14,
+    width: '31%', backgroundColor: Colors.white, borderRadius: 16, padding: 14,
     alignItems: 'center', gap: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },

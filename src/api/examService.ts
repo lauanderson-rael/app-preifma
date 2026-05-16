@@ -32,19 +32,20 @@ export const examService = {
     subject?: 'portugues' | 'matematica';
     exam_type?: string;
   }): Promise<Question[]> {
-    const { data } = await apiClient.get<Question[]>('/questions/random/', {
-      params,
-    });
-    return data;
+    const { data } = await apiClient.get<any>('/questions/random/', { params });
+    const questions = Array.isArray(data) ? data : (data.results || []);
+    return questions;
   },
 
   /** Gerar simulado dinâmico (15 Português + 15 Matemática) */
   async getSimuladoQuestions(examType: string): Promise<Question[]> {
-    const { data } = await apiClient.get<Question[]>('/questions/simulated/', {
-      params: { exam_type: examType.toLowerCase() }
+    const { data } = await apiClient.get<any>('/questions/simulated/', {
+      params: { exam_type: examType.toLowerCase() },
     });
-    return data;
+    const questions = Array.isArray(data) ? data : (data.results || []);
+    return questions;
   },
+
 
   /** Solicitar explicação por IA */
   async explainQuestion(id: number): Promise<any> {

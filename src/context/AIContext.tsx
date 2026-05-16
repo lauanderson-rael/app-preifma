@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { AIUsage } from '../types/api';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { getAccessToken } from '../api/client';
 import { dashboardService } from '../api/dashboardService';
+import { AIUsage } from '../types/api';
 
 interface AIContextValue {
   aiUsage: AIUsage | null;
@@ -20,20 +21,21 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshAIUsage = useCallback(async () => {
+    const token = await getAccessToken();
+    if (!token) return;
+
     setIsLoading(true);
     try {
       const data = await dashboardService.getDashboard();
       if (data.ai_usage) {
         setAiUsage(data.ai_usage);
       }
-    } catch (error) {
-      console.error('Failed to refresh AI usage:', error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     refreshAIUsage();
   }, [refreshAIUsage]);

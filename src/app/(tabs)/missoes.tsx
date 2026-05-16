@@ -48,7 +48,7 @@ function MissionCard({ item, onClaim, claiming }: {
             item.completed && styles.iconBubbleDone
           ]}>
             <Ionicons
-              name={item.completed ? "checkmark-done" : "sparkles-outline"}
+              name={item.completed ? "checkmark-done" : "flag-outline"}
               size={18}
               color={item.completed ? "#FFF" : Colors.primary}
             />

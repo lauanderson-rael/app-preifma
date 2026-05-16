@@ -1,4 +1,4 @@
-import { AxiosError, InternalAxiosRequestConfig, create } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig, create } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL =

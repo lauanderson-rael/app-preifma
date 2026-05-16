@@ -204,8 +204,14 @@ export default function QuestaoEstudoScreen() {
       } else if (res && typeof res === 'object') {
         rawExplanation = (res as any).explanation || (res as any).answer || (res as any).content || "";
 
-        // Update global AI usage if returned
-        if ((res as any).ai_usage) {
+        // Update AI remaining count from response
+        if ((res as any).remaining !== undefined && aiUsage) {
+          updateAIUsage({
+            ...aiUsage,
+            remaining: (res as any).remaining,
+            used: aiUsage.limit - (res as any).remaining,
+          });
+        } else if ((res as any).ai_usage) {
           updateAIUsage((res as any).ai_usage);
         }
       }
@@ -245,12 +251,11 @@ export default function QuestaoEstudoScreen() {
         pathname: "/estudo/resultado",
         params: {
           sessionId: String(result.id),
-          acertos: String(result.correct_answers),
-          total: String(result.total_questions),
-          xp: String(result.xp_earned),
-          duracao: String(result.duration_seconds),
-          streak: String(result.streak),
-          missionsJson: JSON.stringify(result.missions_updated),
+          acertos: String(result.correct_answers ?? 0),
+          total: String(result.total_questions ?? 0),
+          xp: String(result.xp_earned ?? (result as any).xp_gained ?? 0),
+          duracao: String(result.duration_seconds ?? (result as any).duration ?? duration),
+          missionsJson: JSON.stringify(result.missions_updated ?? []),
         },
       });
     } catch {
@@ -392,7 +397,7 @@ export default function QuestaoEstudoScreen() {
 
         {/* ENUNCIADO */}
         <View style={styles.cardEnunciado}>
-          <Text style={styles.enunciadoText}>{currentQuestion.statement}</Text>
+          <Text style={styles.enunciadoText}>{currentIndex + 1}. {currentQuestion.statement}</Text>
         </View>
 
         {/* ALTERNATIVAS */}

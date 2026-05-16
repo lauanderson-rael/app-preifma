@@ -1,8 +1,8 @@
 import apiClient from './client';
-import type { UserProfile, UserStats, StreakInfo } from '../types/api';
+import type { UserProfile, UserStats } from '../types/api';
 
 export const userService = {
-  /** Perfil completo com XP, nível e streak */
+  /** Perfil completo com XP e nível */
   async getProfile(): Promise<UserProfile> {
     const { data } = await apiClient.get<UserProfile>('/auth/users/profile/');
     return data;
@@ -14,15 +14,10 @@ export const userService = {
     return data;
   },
 
-  /** Estatísticas gerais (questões, taxa de acerto, streak, nível) */
+  /** Estatísticas gerais (questões, taxa de acerto, nível) */
   async getStats(): Promise<UserStats> {
     const { data } = await apiClient.get<UserStats>('/auth/users/stats/');
     return data;
   },
 
-  /** Informações de streak */
-  async getStreak(): Promise<StreakInfo> {
-    const { data } = await apiClient.get<StreakInfo>('/auth/streak/');
-    return data;
-  },
 };

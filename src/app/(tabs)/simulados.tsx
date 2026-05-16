@@ -65,16 +65,14 @@ export default function SimuladosScreen() {
         question_ids: questionIds
       });
 
-      // 3. Navegar para a tela de questões com o timer de 3h
+      // 3. Navegar para a tela do simulado com o timer de 3h
       router.push({
-        pathname: '/estudo/questao',
+        pathname: '/simulado/prova',
         params: {
           sessionId: String(session.id),
-          sessionType: 'simulated',
           questionIds: questionIds.join(','),
           titulo: `Simulado - ${nivelSelecionado}`,
-          nivel: nivelSelecionado,
-          tempoLimite: '10800', // 3 horas em segundos
+          tempoLimite: '10800',
         }
       });
     } catch (err) {
