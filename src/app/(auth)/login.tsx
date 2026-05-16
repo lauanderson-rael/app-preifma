@@ -119,6 +119,10 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={styles.forgotRow}>
+              <Text style={styles.forgotText}>Esqueci minha senha</Text>
+            </TouchableOpacity>
+
             {error && (
               <View style={styles.errorBox}>
                 <Ionicons name="alert-circle-outline" size={16} color="#DC2626" />
@@ -268,6 +272,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  forgotRow: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+  },
+  forgotText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   linkRow: {
     flexDirection: 'row',

@@ -65,7 +65,11 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Não tenta refresh em rotas de autenticação (login, register, password_reset)
+    const url = originalRequest.url || '';
+    const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/password_reset');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

@@ -57,7 +57,7 @@ export default function SimuladosScreen() {
         return;
       }
 
-      const questionIds = questions.map(q => q.id);
+      const questionIds = questions.map((q: any) => q.id);
 
       // 2. Iniciar a sessão no backend
       const session = await sessionService.startSession({

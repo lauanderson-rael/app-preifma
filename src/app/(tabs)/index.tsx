@@ -6,7 +6,7 @@ import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
 import { useAI } from '@/context/AIContext';
 import { useAuth } from '@/context/AuthContext';
-import type { Dashboard, SessionType } from '@/types/api';
+import type { Dashboard, SessionType, SubjectProgress } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';

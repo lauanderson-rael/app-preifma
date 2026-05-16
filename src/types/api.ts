@@ -126,9 +126,12 @@ export interface SessionHistoryItem {
   total_questions: number;
   correct_answers: number;
   accuracy_pct: number;
+  accuracy: number;
   xp_earned: number;
+  xp_gained: number;
   duration_seconds: number;
   finished_at: string;
+  created_at: string;
 }
 
 // ── Missions ──────────────────────────────────────────────────
