@@ -162,7 +162,7 @@ export default function HomeScreen() {
                 <Ionicons name="star" size={14} color="#FACC15" />
               </View>
               <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>
-                Nv. {user?.level || dashboard?.level || 1}
+                Nv. {dashboard?.level ?? user?.level ?? 1}
               </Text>
             </TouchableOpacity>
           </View>
@@ -229,21 +229,21 @@ export default function HomeScreen() {
             <View style={styles.statsInfo}>
               <Text style={styles.statsLabel}>XP Total</Text>
               <Text style={styles.statsValue} numberOfLines={1}>
-                {(user?.xp ?? dashboard?.xp ?? 0).toLocaleString('pt-BR')}
+                {(dashboard?.xp ?? user?.xp ?? 0).toLocaleString('pt-BR')}
               </Text>
               <View style={styles.statsProgressTrack}>
                 <View
                   style={[
                     styles.statsProgressFill,
                     {
-                      width: `${user?.progress_pct ?? dashboard?.progress_pct ?? 0}%` as any,
-                      minWidth: (user?.progress_pct ?? dashboard?.progress_pct ?? 0) > 0 ? 6 : 0
+                      width: `${dashboard?.progress_pct ?? user?.progress_pct ?? 0}%` as any,
+                      minWidth: (dashboard?.progress_pct ?? user?.progress_pct ?? 0) > 0 ? 6 : 0
                     }
                   ]}
                 />
               </View>
               <Text style={styles.statsSubtext}>
-                Meta atual: {((user?.xp ?? dashboard?.xp ?? 0) + (user?.xp_to_next_level ?? dashboard?.xp_to_next_level ?? 0)).toLocaleString('pt-BR')} XP
+                Meta atual: {((dashboard?.xp ?? user?.xp ?? 0) + (dashboard?.xp_to_next_level ?? user?.xp_to_next_level ?? 0)).toLocaleString('pt-BR')} XP
               </Text>
             </View>
           </View>
