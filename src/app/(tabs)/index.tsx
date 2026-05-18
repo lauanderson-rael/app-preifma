@@ -130,7 +130,8 @@ export default function HomeScreen() {
     }
   };
 
-  const firstName = user?.name?.split(' ')[0] ?? 'Lauanderson';
+  const firstName = user?.name?.split(' ')[0] ?? 'Aluno';
+  const userLevel = dashboard?.level ?? user?.level ?? 0;
 
   if (loading && !refreshing) {
     return (
@@ -152,20 +153,13 @@ export default function HomeScreen() {
           </View>
         }
         rightContent={
-          <View style={styles.headerIcons}>
-            <TouchableOpacity
-              style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}
-              onPress={() => setLevelModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.diamondIconWrapper}>
-                <Ionicons name="star" size={14} color="#FACC15" />
-              </View>
-              <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>
-                Nv. {dashboard?.level ?? user?.level ?? 1}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setLevelModalVisible(true)}
+            style={styles.headerLevelBadge}
+          >
+            <Text style={styles.headerLevelText}>Nv. {userLevel}</Text>
+          </TouchableOpacity>
         }
       />
 
@@ -442,7 +436,7 @@ export default function HomeScreen() {
             <View style={styles.modalIconWrapper}>
               <Ionicons name="star" size={40} color="#FACC15" />
             </View>
-            <Text style={styles.modalTitle}>Nível</Text>
+            <Text style={styles.modalTitle}>Você está no Nível {userLevel}</Text>
             <Text style={styles.modalText}>
               Seu nível representa sua dedicação e progresso nos estudos!
               {"\n\n"}
@@ -481,19 +475,40 @@ const styles = StyleSheet.create({
     color: '#FFF',
     maxWidth: 200,
   },
+  headerLevelBadge: {
+    minWidth: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerLevelText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.2,
+  },
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
   headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FFF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
+    flexShrink: 0,
+    minWidth: 75,
   },
   headerBadgeText: {
     fontSize: 14,
