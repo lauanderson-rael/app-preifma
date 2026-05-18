@@ -140,7 +140,11 @@ export interface Mission {
   title: string;
   description: string;
   xp_reward: number;
-  target: number;
+  target?: number;
+  goal_value?: number;
+  goal_type?: string;
+  special_reward?: string | null;
+  special_reward_display?: string | null;
 }
 
 export interface MissionProgress {
