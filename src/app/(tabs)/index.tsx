@@ -120,7 +120,7 @@ export default function HomeScreen() {
           sessionType: type,
           questionIds: questionIds.join(','),
           materia: subject ?? '',
-          titulo: subject ? SUBJECT_CONFIG[subject]?.titulo ?? 'Estudo' : 'Partida Rápida',
+          titulo: subject ? SUBJECT_CONFIG[subject]?.titulo ?? 'Estudo' : 'Sessão Rápida',
         },
       });
     } catch {
