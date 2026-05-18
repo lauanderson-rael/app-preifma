@@ -1,6 +1,7 @@
 import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -45,8 +46,8 @@ export default function SimuladosScreen() {
       console.log("[Simulado] API Response Type:", typeof res, "IsArray:", Array.isArray(res));
 
       // Tenta extrair a lista de questões independente do formato (array direto ou objeto com chave 'results' ou 'questions')
-      const questions = Array.isArray(res) 
-        ? res 
+      const questions = Array.isArray(res)
+        ? res
         : (res && typeof res === 'object')
           ? ((res as any).results || (res as any).questions || [])
           : [];
@@ -146,17 +147,17 @@ export default function SimuladosScreen() {
         </View>
 
         {/* Card informativo azul */}
-        <View style={styles.infoCard}>
+        <LinearGradient colors={['#4ADE80', '#1b9648ff']} style={styles.infoCard}>
           <Text style={styles.infoCardTitle}>Regras do Simulado</Text>
           <View style={styles.infoList}>
             {INFO_BULLETS.map((bullet, i) => (
               <View key={i} style={styles.infoListItem}>
-                <Text style={styles.infoBullet}>•</Text>
+                <Text style={styles.infoBullet}>-</Text>
                 <Text style={styles.infoBulletText}>{bullet}</Text>
               </View>
             ))}
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Filtro de Modalidade */}
         <View style={styles.sectionFiltro}>
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Info card
+  // Info card 
   infoCard: {
     backgroundColor: Colors.secondary,
     borderRadius: 16,
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   infoCardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
     color: Colors.white,
     letterSpacing: -0.3,
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
   },
   infoBulletText: {
     color: 'rgba(255,255,255,0.93)',
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 20,
     flex: 1,
   },

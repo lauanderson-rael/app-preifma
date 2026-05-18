@@ -1,11 +1,14 @@
+import { examService } from '@/api/examService';
+import { missionService } from '@/api/missionService';
+import { sessionService } from '@/api/sessionService';
 import { Colors } from '@/constants/Colors';
+import type { MissionProgress } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { MissionProgress } from '@/types/api';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -22,8 +25,11 @@ export default function ResultadoScreen() {
     total: string;
     xp: string;
     duracao: string;
+    sessionType?: string;
     missionsJson: string;
   }>();
+
+  const [starting, setStarting] = useState(false);
 
   const acertos = Number(params.acertos ?? 0);
   const total = Number(params.total ?? 0);
@@ -39,13 +45,46 @@ export default function ResultadoScreen() {
   // Entry animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
+  const [liveMissions, setLiveMissions] = useState<MissionProgress[]>([]);
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 10, useNativeDriver: true }),
     ]).start();
+
+    missionService.getDailyMissions().then(data => {
+      setLiveMissions(data);
+    }).catch(err => console.log('Erro ao buscar missões atualizadas:', err));
   }, [fadeAnim, slideAnim]);
+
+  const handlePlayAgain = async () => {
+    if (params.sessionType === 'quick') {
+      setStarting(true);
+      try {
+        const q = await examService.getRandomQuestions({ count: 10 });
+        if (!q || q.length === 0) throw new Error('Nenhuma questão');
+        const qIds = q.map(x => x.id);
+        const res = await sessionService.startSession({ type: 'quick', question_ids: qIds });
+
+        router.replace({
+          pathname: '/estudo/questao',
+          params: {
+            sessionId: String(res.id),
+            sessionType: 'quick',
+            questionIds: qIds.join(','),
+            titulo: 'Sessão Rápida',
+          },
+        });
+      } catch (err) {
+        Alert.alert('Erro', 'Não foi possível iniciar uma nova sessão.');
+      } finally {
+        setStarting(false);
+      }
+    } else {
+      router.replace('/estudo/filtros');
+    }
+  };
 
   const isGood = accuracy >= 60;
 
@@ -77,17 +116,17 @@ export default function ResultadoScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
+            <Ionicons name="checkmark-circle" size={26} color={Colors.primary} />
             <Text style={styles.statValue}>{acertos}/{total}</Text>
             <Text style={styles.statLabel}>Acertos</Text>
           </View>
           <View style={styles.statCard}>
-            <Ionicons name="star" size={22} color="#F59E0B" />
+            <Ionicons name="star" size={26} color="#F59E0B" />
             <Text style={styles.statValue}>+{xp}</Text>
             <Text style={styles.statLabel}>XP Ganho</Text>
           </View>
           <View style={styles.statCard}>
-            <Ionicons name="time-outline" size={22} color="#6366F1" />
+            <Ionicons name="time-outline" size={26} color="#6366F1" />
             <Text style={styles.statValue}>{formatDuration(duracao)}</Text>
             <Text style={styles.statLabel}>Duração</Text>
           </View>
@@ -100,14 +139,15 @@ export default function ResultadoScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📅 Progresso de Missões</Text>
             {missions.map((mp: any) => {
-              const mission = mp.mission;
-              const target = mission?.target ?? mp.target ?? mp.goal ?? 0;
-              const progress = mp.progress ?? mp.current ?? 0;
-              const title = mission?.title ?? mp.title ?? mp.description ?? 'Missão';
-              const completed = mp.completed ?? false;
-              const pct = target > 0
-                ? Math.min((progress / target) * 100, 100)
-                : (completed ? 100 : 0);
+              // Buscamos o dado real da API caso o JSON local venha faltando o target
+              const liveMp = liveMissions.find(lm => lm.mission?.id === mp.id || lm.id === mp.id);
+              const missionData = liveMp ? liveMp.mission : mp.mission;
+
+              const target = (missionData as any)?.goal_value ?? missionData?.target ?? mp.target ?? (mp as any).goal ?? 1;
+              const progress = liveMp?.progress ?? mp.progress ?? (mp as any).current ?? 0;
+              const title = missionData?.title ?? mp.title ?? (mp as any).description ?? 'Missão';
+              const completed = liveMp?.completed ?? mp.completed ?? false;
+              const pct = completed ? 100 : Math.min((progress / target) * 100, 100);
               return (
                 <View key={mp.id ?? mp.mission_id ?? title} style={styles.missionCard}>
                   <View style={styles.missionHeader}>
@@ -136,11 +176,16 @@ export default function ResultadoScreen() {
             <Text style={styles.btnPrimaryText}>Ir para o Início</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={() => router.back()}
+            style={[styles.btnSecondary, starting && { opacity: 0.7 }]}
+            onPress={handlePlayAgain}
             activeOpacity={0.8}
+            disabled={starting}
           >
-            <Text style={styles.btnSecondaryText}>Jogar Novamente</Text>
+            {starting ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : (
+              <Text style={styles.btnSecondaryText}>Praticar Novamente</Text>
+            )}
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>
@@ -162,14 +207,14 @@ const styles = StyleSheet.create({
   heroAccuracy: { fontSize: 56, fontWeight: '900', letterSpacing: -2 },
   heroSub: { fontSize: 14, color: Colors.textSecondary },
 
-  statsRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  statsRow: { flexDirection: 'row', gap: 10 },
   statCard: {
-    width: '31%', backgroundColor: Colors.white, borderRadius: 16, padding: 14,
+    flex: 1, backgroundColor: Colors.white, borderRadius: 16, padding: 14,
     alignItems: 'center', gap: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  statValue: { fontSize: 16, fontWeight: '800', color: Colors.text },
-  statLabel: { fontSize: 10, color: Colors.textSecondary, textAlign: 'center' },
+  statValue: { fontSize: 20, fontWeight: '800', color: Colors.text },
+  statLabel: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', fontWeight: '600' },
 
   section: { gap: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: Colors.text },

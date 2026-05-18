@@ -143,20 +143,20 @@ export default function PerfilScreen() {
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
 
-            <Text style={styles.cardTitle}>Histórico de Atividades</Text>
+            <Text style={styles.cardTitle}>Últimas Atividades</Text>
           </View>
 
           {recentSessions.length > 0 ? (
             <View style={styles.historyList}>
-              {recentSessions.map((session, index) => {
+              {recentSessions.slice(0, 3).map((session, index) => {
                 const date = new Date(session.created_at);
                 const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 
                 const typeInfo = {
-                  quick: { icon: 'flash-outline', label: 'Rápida', color: '#22C55E' },
+                  quick: { icon: 'flash-outline', label: 'Sessão Rápida', color: '#22C55E' },
                   simulated: { icon: 'clipboard-outline', label: 'Simulado', color: '#F59E0B' },
-                  practice: { icon: 'library-outline', label: 'Treino Livre', color: '#3B82F6' },
+                  practice: { icon: 'library-outline', label: 'Estudo Livre', color: '#3B82F6' },
                 }[session.type] || { icon: 'help-circle-outline', label: 'Sessão', color: '#6B7280' };
 
                 return (
@@ -170,7 +170,7 @@ export default function PerfilScreen() {
                           <Text style={styles.historyTitle}>{typeInfo.label}</Text>
                         </View>
                         <Text style={styles.historySubtitle}>
-                          {dateStr} • {session.correct_answers}/{session.total_questions} acertos
+                          {dateStr}  •  {session.correct_answers}/{session.total_questions} acertos
                         </Text>
                       </View>
                       <View style={styles.historyRight}>
@@ -180,7 +180,7 @@ export default function PerfilScreen() {
                         <Text style={styles.historyXp}>+{session.xp_gained} XP</Text>
                       </View>
                     </View>
-                    {index < recentSessions.length - 1 && <View style={styles.historyDivider} />}
+                    {index < Math.min(recentSessions.length, 10) - 1 && <View style={styles.historyDivider} />}
                   </React.Fragment>
                 );
               })}
@@ -219,14 +219,14 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 22, fontWeight: '800', color: Colors.white },
   userInfo: { flex: 1, gap: 2 },
   userName: { fontSize: 18, fontWeight: '800', color: Colors.text },
-  userUsername: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
-  userEmail: { fontSize: 12, color: Colors.textSecondary },
+  userUsername: { fontSize: 13, fontWeight: '600' },
+  userEmail: { fontSize: 13, color: Colors.textSecondary },
 
   xpSection: { gap: 6 },
   xpHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   levelBadge: { backgroundColor: Colors.primaryLight, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   levelText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
-  xpText: { fontSize: 13, fontWeight: '700', color: Colors.text },
+  xpText: { fontSize: 15, fontWeight: '800', color: Colors.primary },
   xpTrack: { height: 10, backgroundColor: '#F3F4F6', borderRadius: 99, overflow: 'hidden' },
   xpFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 99 },
   xpNext: { fontSize: 11, color: Colors.textSecondary },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: Colors.text, flex: 1 },
   historySubtitle: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
   historyList: { gap: 14 },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   historyDate: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
   historyRight: { alignItems: 'flex-end', gap: 2 },
   historyAccuracy: { fontSize: 14, fontWeight: '800' },
-  historyXp: { fontSize: 11, fontWeight: '600', color: '#A855F7' },
+  historyXp: { fontSize: 11, fontWeight: '600', color: Colors.primary },
   emptyText: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', paddingVertical: 10 },
   historyDivider: {
     height: 1.2,

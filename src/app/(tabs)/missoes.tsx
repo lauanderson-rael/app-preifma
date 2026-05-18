@@ -3,7 +3,8 @@ import { CustomHeader } from "@/components/CustomHeader";
 import { Colors } from "@/constants/Colors";
 import type { MissionProgress } from "@/types/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,12 +25,14 @@ function MissionCard({ item, onClaim, claiming }: {
   const mission = item.mission;
   const title = mission?.title ?? item.title ?? "Missão diária";
   const description = mission?.description ?? "Complete a meta para ganhar XP.";
-  const target = mission?.target ?? item.target ?? 0;
-  const progress = item.progress ?? 0;
+  const target = mission?.goal_value ?? mission?.target ?? item.target ?? (item as any).goal ?? (mission as any)?.goal ?? 0;
+  const progress = item.progress ?? (item as any).current ?? 0;
+  const targetDisplay = target > 0 ? target : 10;
   const xpReward = mission?.xp_reward ?? 0;
+  const specialRewardDisplay = mission?.special_reward_display ?? null;
   const pct =
-    target > 0
-      ? Math.min((progress / target) * 100, 100)
+    targetDisplay > 0
+      ? Math.min((progress / targetDisplay) * 100, 100)
       : item.completed
         ? 100
         : 0;
@@ -38,8 +41,7 @@ function MissionCard({ item, onClaim, claiming }: {
   return (
     <View style={[
       styles.card,
-      item.completed && styles.cardDone,
-      item.xp_claimed && styles.cardClaimed
+      (item.completed || item.xp_claimed) && styles.cardDone,
     ]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
@@ -48,9 +50,9 @@ function MissionCard({ item, onClaim, claiming }: {
             item.completed && styles.iconBubbleDone
           ]}>
             <Ionicons
-              name={item.completed ? "checkmark-done" : "flag-outline"}
-              size={18}
-              color={item.completed ? "#FFF" : Colors.primary}
+              name={item.completed ? "checkmark" : "flag-outline"}
+              size={item.completed ? 22 : 18}
+              color="#7C3AED"
             />
           </View>
           <View style={styles.cardTitleWrap}>
@@ -77,13 +79,26 @@ function MissionCard({ item, onClaim, claiming }: {
 
       <View style={styles.progressMeta}>
         <Text style={styles.progressText}>
-          {target > 0 ? `Progresso: ${progress}/${target}` : `Progresso: ${progress}`}
+          Progresso: {progress}/{targetDisplay}
         </Text>
-        <Text style={styles.progressText}>Recompensa: {xpReward} XP</Text>
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <Text style={styles.progressText}>
+            Recompensa: {xpReward} XP
+            {item.xp_claimed}
+          </Text>
+          {specialRewardDisplay && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="sparkles" size={12} color='#7C3AED' />
+              <Text style={{ fontSize: 12, color: '#7C3AED', fontWeight: '700' }}>
+                {specialRewardDisplay}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${pct}%` }]} />
+      <View style={[styles.track, item.completed && { backgroundColor: '#EDE9FE' }]}>
+        <View style={[styles.fill, { width: `${pct}%` }, item.completed && { backgroundColor: '#7C3AED' }]} />
       </View>
 
       {canClaim ? (
@@ -96,7 +111,7 @@ function MissionCard({ item, onClaim, claiming }: {
           {claiming ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.claimButtonText}>Resgatar XP</Text>
+            <Text style={styles.claimButtonText}>Resgatar recompensa</Text>
           )}
         </TouchableOpacity>
       ) : null}
@@ -141,11 +156,11 @@ export default function MissaoScreen() {
       await missionService.claimMission(id);
       await loadMissions();
       Alert.alert(
-        "XP resgatado",
-        "Seu XP da missão foi adicionado com sucesso.",
+        "Recompensa resgatada",
+        "Sua recompensa da missão foi adicionada com sucesso.",
       );
     } catch (err: any) {
-      Alert.alert("Erro", err?.message ?? "Não foi possível resgatar o XP.");
+      Alert.alert("Erro", err?.message ?? "Não foi possível resgatar a recompensa.");
     } finally {
       setClaimingId(null);
     }
@@ -156,7 +171,14 @@ export default function MissaoScreen() {
 
   return (
     <View style={styles.container}>
-      <CustomHeader title="Missões diárias" />
+      <CustomHeader
+        title="Missões diárias"
+        leftContent={
+          <TouchableOpacity onPress={() => router.navigate('/')} style={{ padding: 4, marginLeft: -4 }}>
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -170,14 +192,14 @@ export default function MissaoScreen() {
           />
         }
       >
-        <View style={styles.hero}>
+        <LinearGradient colors={['#8B5CF6', '#6a28dbff']} style={styles.hero}>
           <Text style={styles.heroTitle}>Complete missões e ganhe recompensas</Text>
           <Text style={styles.heroSubtitle}>
             {missions.length > 0
               ? `${completedCount}/${missions.length} concluídas • ${claimedCount} resgatadas`
               : "Nenhuma missão disponível no momento."}
           </Text>
-        </View>
+        </LinearGradient>
 
         {loading ? (
           <View style={styles.stateBox}>
@@ -242,7 +264,7 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
   },
   hero: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: "#7C3AED",
     borderRadius: 20,
     padding: 18,
     gap: 8,
@@ -296,29 +318,22 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: "#EDE9FE",
     alignItems: "center",
     justifyContent: "center",
   },
   iconBubbleDone: {
-    backgroundColor: "#22C55E",
+    backgroundColor: "#DDD6FE",
   },
   cardDone: {
-    backgroundColor: "#F0FDF4",
-    borderColor: "#22C55E",
-    borderWidth: 2,
-    shadowColor: "#22C55E",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  cardClaimed: {
-    backgroundColor: "#F1F5F9",
-    borderColor: "#CBD5E1",
-    borderWidth: 1,
-    opacity: 0.9,
-    elevation: 0,
+    backgroundColor: "#F5F3FF",
+    borderColor: "transparent",
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   cardTitleWrap: {
     flex: 1,
@@ -340,20 +355,20 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   statusDone: {
-    backgroundColor: "#DCFCE7",
+    backgroundColor: "#DDD6FE",
   },
   statusPending: {
-    backgroundColor: "#E0F2FE",
+    backgroundColor: "#EDE9FE",
   },
   statusText: {
     fontSize: 11,
     fontWeight: "700",
   },
   statusTextDone: {
-    color: "#15803D",
+    color: "#6D28D9",
   },
   statusTextPending: {
-    color: "#0369A1",
+    color: "#7C3AED",
   },
   progressMeta: {
     flexDirection: "row",
@@ -373,7 +388,8 @@ const styles = StyleSheet.create({
   },
   fill: {
     height: "100%",
-    backgroundColor: Colors.primary,
+    // backgroundColor: "#3B82F6",
+    backgroundColor: "#7C3AED",
     borderRadius: 99,
   },
   claimButton: {
@@ -381,7 +397,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.primary,
+    backgroundColor: "#7C3AED",
   },
   claimButtonDisabled: {
     opacity: 0.7,
@@ -398,10 +414,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#F5F3FF",
   },
   claimedText: {
-    color: "#15803D",
+    color: "#6D28D9",
     fontSize: 14,
     fontWeight: "700",
   },

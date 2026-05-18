@@ -1,9 +1,10 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CustomHeader } from '@/components/CustomHeader';
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -30,6 +31,8 @@ export default function SimuladoResultadoScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
+  
+  const [loadingReview, setLoadingReview] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -38,8 +41,19 @@ export default function SimuladoResultadoScreen() {
     ]).start();
   }, []);
 
+  const handleReview = () => {
+    if (loadingReview) return;
+    setLoadingReview(true);
+    // Dá um fôlego para o React Native renderizar o loading antes de travar a thread de UI com a navegação pesada
+    setTimeout(() => {
+      router.push({ pathname: '/simulado/gabarito', params: { reviewData: params.reviewData } });
+      setLoadingReview(false);
+    }, 100);
+  };
+
   return (
-    <View style={[styles.safe, { paddingTop: insets.top }]}>
+    <View style={styles.safe}>
+      <CustomHeader title="Resultado do Simulado" />
       <Animated.ScrollView
         style={{ opacity: fadeAnim }}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
@@ -58,37 +72,39 @@ export default function SimuladoResultadoScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+            <Ionicons name="checkmark-circle" size={26} color={Colors.primary} />
             <Text style={styles.statValue}>{acertos}</Text>
             <Text style={styles.statLabel}>Acertos</Text>
           </View>
           <View style={styles.statCard}>
-            <Ionicons name="close-circle" size={24} color="#EF4444" />
+            <Ionicons name="close-circle" size={26} color="#EF4444" />
             <Text style={styles.statValue}>{erros}</Text>
             <Text style={styles.statLabel}>Erros</Text>
           </View>
           <View style={styles.statCard}>
-            <Ionicons name="star" size={24} color="#F59E0B" />
+            <Ionicons name="star" size={26} color="#F59E0B" />
             <Text style={styles.statValue}>+{xp}</Text>
             <Text style={styles.statLabel}>XP</Text>
           </View>
-          {/* <View style={styles.statCard}>
-            <Ionicons name="time-outline" size={24} color="#6366F1" />
-            <Text style={styles.statValue}>{formatDuration(duracao)}</Text>
-            <Text style={styles.statLabel}>Duração</Text>
-          </View> */}
         </View>
 
         {/* CTAs */}
         <View style={styles.ctaSection}>
           {params.reviewData && (
             <TouchableOpacity
-              style={styles.btnReview}
-              onPress={() => router.push({ pathname: '/simulado/gabarito', params: { reviewData: params.reviewData } })}
+              style={[styles.btnReview, loadingReview && { opacity: 0.7 }]}
+              onPress={handleReview}
               activeOpacity={0.85}
+              disabled={loadingReview}
             >
-              <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
-              <Text style={styles.btnReviewText}>Conferir Gabarito</Text>
+              {loadingReview ? (
+                <ActivityIndicator color={Colors.primary} />
+              ) : (
+                <>
+                  <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.btnReviewText}>Conferir Gabarito</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
@@ -129,8 +145,8 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: '#FFF', borderRadius: 16, padding: 14, alignItems: 'center', gap: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  statValue: { fontSize: 16, fontWeight: '800', color: Colors.text },
-  statLabel: { fontSize: 10, color: Colors.textSecondary, textAlign: 'center' },
+  statValue: { fontSize: 20, fontWeight: '800', color: Colors.text },
+  statLabel: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', fontWeight: '600' },
   ctaSection: { gap: 12, marginTop: 4 },
   btnReview: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
