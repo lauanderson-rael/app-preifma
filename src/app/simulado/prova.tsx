@@ -1,13 +1,15 @@
 import { examService } from '@/api/examService';
 import { sessionService } from '@/api/sessionService';
+import { QuestionImage } from '@/components/QuestionImage';
 import { Colors } from '@/constants/Colors';
 import type { AnswerResult, Question } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, BackHandler, Image, Platform, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, Alert, BackHandler,
+  Platform, ScrollView,
+  StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -39,7 +41,7 @@ export default function SimuladoProvaScreen() {
       try {
         const loaded: Question[] = [];
         for (const id of questionIds) {
-          try { loaded.push(await examService.getQuestion(id)); } catch {}
+          try { loaded.push(await examService.getQuestion(id)); } catch { }
         }
         if (loaded.length === 0) {
           Alert.alert('Erro', 'Não foi possível carregar as questões.', [
@@ -66,7 +68,7 @@ export default function SimuladoProvaScreen() {
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
   const handleSelect = (altId: number) => {
@@ -89,7 +91,7 @@ export default function SimuladoProvaScreen() {
               question_id: q.id, alternative_id: altId, response_time: 0,
             });
             results[q.id] = r;
-          } catch {}
+          } catch { }
         }
       }
 
@@ -203,8 +205,11 @@ export default function SimuladoProvaScreen() {
             const base = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || '';
             return (
               <View key={a.id} style={styles.imageBox}>
-                {!!a.label && <View style={styles.attachLabel}><Text style={styles.attachLabelText}>{a.label}</Text></View>}
-                <Image source={{ uri: `${base}${a.file}` }} style={styles.attachImage} resizeMode="contain" />
+                {!!a.label &&
+                  <View style={[styles.attachLabel, { margin: 16 }]}>
+                    <Text style={styles.attachLabelText}>{a.label}</Text>
+                  </View>}
+                <QuestionImage uri={`${base}${a.file}`} style={styles.attachImage} resizeMode="contain" />
               </View>
             );
           }

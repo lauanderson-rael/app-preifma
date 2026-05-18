@@ -3,6 +3,7 @@ import { sessionService } from "@/api/sessionService";
 import { Colors } from "@/constants/Colors";
 import { useAI } from "@/context/AIContext";
 import type { AnswerResult, Question } from "@/types/api";
+import { QuestionImage } from "@/components/QuestionImage";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -405,8 +406,8 @@ export default function QuestaoEstudoScreen() {
                     <Text style={styles.attachmentLabelText}>{a.label}</Text>
                   </View>
                 )}
-                <Image
-                  source={{ uri }}
+                <QuestionImage
+                  uri={uri}
                   style={styles.attachmentImage}
                   resizeMode="contain"
                 />

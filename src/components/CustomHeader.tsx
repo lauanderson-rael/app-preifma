@@ -22,9 +22,9 @@ export function CustomHeader({ title, leftContent, rightContent }: CustomHeaderP
         ) : (
           <View style={styles.sideSpacer} />
         )}
-        
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        
+
+        {!!title && <Text style={styles.title} numberOfLines={1}>{title}</Text>}
+
         {rightContent ? (
           <View style={styles.rightSide}>{rightContent}</View>
         ) : (
