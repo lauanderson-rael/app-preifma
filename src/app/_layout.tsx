@@ -1,3 +1,4 @@
+import { Colors } from '@/constants/Colors';
 import { AIProvider } from '@/context/AIContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { SessionProvider } from '@/context/SessionContext';
@@ -6,7 +7,6 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/Colors';
 
 /** Controla redirecionamento baseado em autenticação */
 function AuthGate() {
@@ -25,7 +25,8 @@ function AuthGate() {
     }
   }, [isAuthenticated, isLoading, isAuthRoute]);
 
-  if (isLoading) {
+
+  if (isLoading && !isAuthRoute) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background }}>
         <ActivityIndicator size="large" color={Colors.primary} />

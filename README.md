@@ -2,7 +2,8 @@
 
 Este é um projeto [Expo](https://expo.dev) e [React Native](https://reactnative.dev/) para o aplicativo **Pré-IFMA**. 
 
-O aplicativo tem o objetivo de ajudar os alunos em sua preparação, simulados e testes.
+O Pré-IFMA é um aplicativo móvel projetado para otimizar a preparação de estudantes para o seletivo do IFMA. Alimentado por uma API que extrai questões oficiais via inteligência artificial, o sistema oferece simulados, resoluções comentadas por IA e mecânicas de engajamento baseadas em missões diárias, níveis e experiência (XP).  
+
 
 ## 🚀 Como Executar o App
 
@@ -58,15 +59,37 @@ Após executar este comando, o Expo irá iniciar um servidor de desenvolvimento 
 
 ---
 
+## 🌟 Funcionalidades
+
+O aplicativo oferece uma gama completa de recursos para a preparação dos estudantes:
+
+- **🔐 Autenticação e Segurança**
+  - Login e Cadastro de Usuários.
+  - Fluxo completo de Recuperação de Senha (Forgot Password).
+- **📝 Simulados Completos**
+  - Listagem e histórico de simulados.
+  - Realização de provas cronometradas.
+  - Resultados detalhados com estatísticas de desempenho.
+  - Acesso ao gabarito após a conclusão.
+- **📚 Modo de Estudo Personalizado**  
+  - Resolução de questões aleatórias.  
+  - Filtros avançados para escolher questões específicas (por disciplina, modalidade, etc.). 
+  - Feedback imediato e resultados da sessão de estudos. 
+- **🤖 Explicação com IA**
+  - Explicações detalhadas geradas por Inteligência Artificial para as questões, ajudando o aluno a entender profundamente os assuntos. 
+- **🎯 Gamificação e Missões**
+  - Missões diárias: tarefas que incentivam o estudo regular e premiam com pontos de experiência.
+  - Níveis e XP: progressão baseada no desempenho do aluno em simulados e questões.
+- **👤 Perfil e Progresso**
+  - Acompanhamento do perfil do estudante e seu progresso geral. 
+
 ## 🛠️ Tecnologias e Estrutura
 
 - **React Native** & **Expo**: Base do projeto.
 - **Expo Router**: Utilizado para gerenciar a navegação e roteamento do aplicativo (com base na estrutura de pastas no diretório `app` / `src/app`).
 - **TypeScript**: Utilizado para tipagem do código, dando mais segurança ao desenvolvimento.
 
-Para fazer alterações no projeto, você pode explorar e editar os arquivos contidos principalmente na pasta `src/`. As mudanças serão refletidas quase instantaneamente no aplicativo graças ao recurso de *Fast Refresh*.
-
-## 📚 Links Úteis
+## 📚 Links Úteis 
 
 - [Documentação Oficial do Expo](https://docs.expo.dev/)
 - [Guia de Navegação (Expo Router)](https://docs.expo.dev/router/introduction/)

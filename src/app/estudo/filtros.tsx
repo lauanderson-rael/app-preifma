@@ -100,9 +100,9 @@ export default function FiltrosScreen() {
           sessionType: 'practice',
           questionIds: questionIds.join(','),
           materia: subjectParam,
-          titulo: materiasSelecionadas.length > 1 
-            ? 'Múltiplas Matérias' 
-            : (MATERIAS.find(m => m.id === materiasSelecionadas[0])?.label ?? 'Treino Livre'),
+          titulo: materiasSelecionadas.length > 1
+            ? 'Múltiplas Matérias'
+            : (MATERIAS.find(m => m.id === materiasSelecionadas[0])?.label ?? 'Estudo Livre'),
           nivel: niveisSelecionados.join(', '),
         }
       });
@@ -116,12 +116,12 @@ export default function FiltrosScreen() {
 
   return (
     <View style={styles.safe}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <CustomHeader
-          title={`Estudar ${titulo}`}
+          title={`${titulo}`}
           leftContent={
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -130,8 +130,8 @@ export default function FiltrosScreen() {
         />
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView 
-            contentContainerStyle={styles.content} 
+          <ScrollView
+            contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -157,10 +157,10 @@ export default function FiltrosScreen() {
                       style={[styles.chip, isSelected && styles.chipSelected]}
                       activeOpacity={0.7}
                     >
-                      <Ionicons 
-                        name={isSelected ? "checkbox" : "square-outline"} 
-                        size={18} 
-                        color={isSelected ? Colors.primary : Colors.textMuted} 
+                      <Ionicons
+                        name={isSelected ? "checkbox" : "square-outline"}
+                        size={18}
+                        color={isSelected ? Colors.primary : Colors.textMuted}
                       />
                       <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                         {nivel}
@@ -187,10 +187,10 @@ export default function FiltrosScreen() {
                       style={[styles.chip, isSelected && styles.chipSelected]}
                       activeOpacity={0.7}
                     >
-                      <Ionicons 
-                        name={isSelected ? "checkbox" : "square-outline"} 
-                        size={18} 
-                        color={isSelected ? Colors.primary : Colors.textMuted} 
+                      <Ionicons
+                        name={isSelected ? "checkbox" : "square-outline"}
+                        size={18}
+                        color={isSelected ? Colors.primary : Colors.textMuted}
                       />
                       <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                         {item.label}
@@ -227,7 +227,7 @@ export default function FiltrosScreen() {
                     </TouchableOpacity>
                   );
                 })}
-                
+
                 {!isOutro ? (
                   <TouchableOpacity
                     onPress={() => setIsOutro(true)}
@@ -249,7 +249,7 @@ export default function FiltrosScreen() {
                       maxLength={2}
                       autoFocus={true}
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setIsOutro(false)}
                       style={styles.inlineInputClose}
                     >
@@ -258,7 +258,7 @@ export default function FiltrosScreen() {
                   </View>
                 )}
               </View>
-              
+
               {isOutro && (
                 <Text style={styles.customInputHintCompact}>Mínimo 1, máximo 50 questões.</Text>
               )}
@@ -268,9 +268,9 @@ export default function FiltrosScreen() {
 
         {/* FOOTER BOTÃO START */}
         <View style={[styles.footer, { paddingBottom: Math.max(24, insets.bottom + 8) }]}>
-          <TouchableOpacity 
-            style={[styles.btnIniciar, loading && styles.btnDisabled]} 
-            onPress={handleIniciar} 
+          <TouchableOpacity
+            style={[styles.btnIniciar, loading && styles.btnDisabled]}
+            onPress={handleIniciar}
             activeOpacity={0.8}
             disabled={loading}
           >

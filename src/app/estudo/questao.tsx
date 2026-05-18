@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  BackHandler,
   Image,
   Platform,
   ScrollView,
@@ -139,6 +140,25 @@ export default function QuestaoEstudoScreen() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const handleBack = () => {
+    Alert.alert(
+      "Sair da sessão",
+      "Seu progresso não salvo será perdido. Deseja realmente sair?",
+      [
+        { text: "Continuar", style: "cancel" },
+        { text: "Sair", style: "destructive", onPress: () => router.back() },
+      ]
+    );
+  };
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
   const currentQuestion = questions[currentIndex] ?? null;
   const isLastQuestion = currentIndex >= questions.length - 1;
   const acertou = answered && lastResult?.is_correct === true;
@@ -255,6 +275,7 @@ export default function QuestaoEstudoScreen() {
           total: String(result.total_questions ?? 0),
           xp: String(result.xp_earned ?? (result as any).xp_gained ?? 0),
           duracao: String(result.duration_seconds ?? (result as any).duration ?? duration),
+          sessionType: sessionType,
           missionsJson: JSON.stringify(result.missions_updated ?? []),
         },
       });
@@ -310,7 +331,7 @@ export default function QuestaoEstudoScreen() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={styles.backBtnWrapper}
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -397,7 +418,7 @@ export default function QuestaoEstudoScreen() {
 
         {/* ENUNCIADO */}
         <View style={styles.cardEnunciado}>
-          <Text style={styles.enunciadoText}>{currentIndex + 1}. {currentQuestion.statement}</Text>
+          <Text style={styles.enunciadoText}>{currentQuestion.number ?? (currentIndex + 1)}. {currentQuestion.statement}</Text>
         </View>
 
         {/* ALTERNATIVAS */}

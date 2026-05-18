@@ -6,7 +6,7 @@ import { CustomHeader } from '@/components/CustomHeader';
 import { Colors } from '@/constants/Colors';
 import { useAI } from '@/context/AIContext';
 import { useAuth } from '@/context/AuthContext';
-import type { Dashboard, SessionType } from '@/types/api';
+import type { Dashboard, SessionType, SubjectProgress } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -18,6 +18,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -64,6 +65,7 @@ export default function HomeScreen() {
   const [activeBanner, setActiveBanner] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [levelModalVisible, setLevelModalVisible] = useState(false);
   const [startingSession, setStartingSession] = useState(false);
 
   const loadDashboard = useCallback(async () => {
@@ -151,14 +153,18 @@ export default function HomeScreen() {
         }
         rightContent={
           <View style={styles.headerIcons}>
-            <View style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}>
+            <TouchableOpacity
+              style={[styles.headerBadge, { backgroundColor: '#F0F9FF' }]}
+              onPress={() => setLevelModalVisible(true)}
+              activeOpacity={0.8}
+            >
               <View style={styles.diamondIconWrapper}>
                 <Ionicons name="star" size={14} color="#FACC15" />
               </View>
               <Text style={[styles.headerBadgeText, { color: '#0369A1' }]}>
-                Nv. {user?.level ?? dashboard?.level ?? 1}
+                Nv. {user?.level || dashboard?.level || 1}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -321,7 +327,7 @@ export default function HomeScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Treino Livre */}
+            {/* Estudo Livre */}
             <TouchableOpacity
               style={styles.studyModeCard}
               activeOpacity={0.8}
@@ -329,7 +335,7 @@ export default function HomeScreen() {
                 router.push({
                   pathname: '/estudo/filtros',
                   params: {
-                    titulo: 'Treino Livre',
+                    titulo: 'Estudo Livre',
                     materia: '',
                   },
                 })
@@ -344,7 +350,7 @@ export default function HomeScreen() {
                     <Shuffle size={24} color="#FFF" />
                   </View>
                   <View>
-                    <Text style={styles.studyModeTitle}>Treino Livre</Text>
+                    <Text style={styles.studyModeTitle}>Estudo Livre</Text>
                     <Text style={styles.studyModeDesc}>Escolha matéria e quantidade</Text>
                   </View>
                 </View>
@@ -404,7 +410,7 @@ export default function HomeScreen() {
                     </View>
 
                     <View style={styles.performanceStats}>
-                      <Text style={styles.performanceStatsLabel}>Total de questões</Text>
+                      <Text style={styles.performanceStatsLabel}>Respondidas</Text>
                       <Text style={styles.performanceStatsValue}>{total}</Text>
                       <Text style={[styles.performanceStatsLabel, { marginTop: 8 }]}>Acertos</Text>
                       <Text style={[styles.performanceStatsValue, { color: Colors.primary }]}>{correct}</Text>
@@ -423,6 +429,37 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Modal de Informação sobre Nível */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={levelModalVisible}
+        onRequestClose={() => setLevelModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconWrapper}>
+              <Ionicons name="star" size={40} color="#FACC15" />
+            </View>
+            <Text style={styles.modalTitle}>Nível</Text>
+            <Text style={styles.modalText}>
+              Seu nível representa sua dedicação e progresso nos estudos!
+              {"\n\n"}
+              Ganhe pontos de experiência (XP) ao responder questões corretamente,
+              concluir simulados completos e resgatar suas missões diárias.
+
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setLevelModalVisible(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalButtonText}>Entendi!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -606,7 +643,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   studyModeDesc: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     fontWeight: '500',
     marginTop: 2,
@@ -642,7 +679,7 @@ const styles = StyleSheet.create({
   },
   performanceTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#111827',
   },
   performanceContent: {
@@ -675,7 +712,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   performanceStatsLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#6B7280',
     fontWeight: '600',
   },
@@ -694,4 +731,59 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   startingText: { fontSize: 14, color: '#111827', fontWeight: '700', marginTop: 10 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF9C3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 15,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 14,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });

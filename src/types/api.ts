@@ -126,9 +126,12 @@ export interface SessionHistoryItem {
   total_questions: number;
   correct_answers: number;
   accuracy_pct: number;
+  accuracy: number;
   xp_earned: number;
+  xp_gained: number;
   duration_seconds: number;
   finished_at: string;
+  created_at: string;
 }
 
 // ── Missions ──────────────────────────────────────────────────
@@ -137,7 +140,11 @@ export interface Mission {
   title: string;
   description: string;
   xp_reward: number;
-  target: number;
+  target?: number;
+  goal_value?: number;
+  goal_type?: string;
+  special_reward?: string | null;
+  special_reward_display?: string | null;
 }
 
 export interface MissionProgress {

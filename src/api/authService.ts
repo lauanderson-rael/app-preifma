@@ -1,8 +1,7 @@
-import apiClient, { clearTokens, saveTokens } from './client';
 import type { AuthTokens, User, UserProfile } from '../types/api';
+import apiClient, { clearTokens, saveTokens } from './client';
 
 export const authService = {
-  /** Registrar novo usuário */
   async register(payload: {
     email: string;
     password: string;
@@ -14,7 +13,6 @@ export const authService = {
     return data;
   },
 
-  /** Login com e-mail e senha */
   async login(email: string, password: string): Promise<AuthTokens> {
     const { data } = await apiClient.post<AuthTokens>('/auth/login/', {
       email,
@@ -24,7 +22,7 @@ export const authService = {
     return data;
   },
 
-  /** Buscar usuário logado */
+
   async me(): Promise<UserProfile> {
     const { data } = await apiClient.get<UserProfile>('/auth/me/');
     return data;
@@ -38,9 +36,19 @@ export const authService = {
     );
     return data;
   },
-
-  /** Logout local */
   async logout(): Promise<void> {
-    await clearTokens();
+    await clearTokens(); 
+  },
+
+  // ── Password Reset ────────────────────────────────────────── 
+  async requestPasswordReset(email: string): Promise<void> {
+    await apiClient.post('/auth/password_reset/', { email });
+  },
+  async validateResetToken(token: string): Promise<{ status: string }> {
+    const { data } = await apiClient.post<{ status: string }>('/auth/password_reset/validate_token/', { token });
+    return data;
+  },
+  async confirmPasswordReset(token: string, password: string): Promise<void> {
+    await apiClient.post('/auth/password_reset/confirm/', { token, password });
   },
 };
