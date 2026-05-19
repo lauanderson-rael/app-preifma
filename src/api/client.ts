@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, create } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { markNetworkAvailable, markNetworkUnavailable } from '@/lib/networkStatus';
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://192.168.1.100:8000/api';
@@ -59,15 +60,26 @@ function processQueue(error: unknown, token: string | null = null) {
 
 // Response interceptor: auto-refresh on 401
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    markNetworkAvailable();
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
-    // Não tenta refresh em rotas de autenticação (login, register, password_reset)
+    // Nao tenta refresh em rotas de autenticacao (login, register, password_reset)
     const url = originalRequest.url || '';
     const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/password_reset');
+
+    if (error.response) {
+      markNetworkAvailable();
+    }
+
+    if (error.code === 'ERR_NETWORK' || (!error.response && !!error.request)) {
+      markNetworkUnavailable();
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {

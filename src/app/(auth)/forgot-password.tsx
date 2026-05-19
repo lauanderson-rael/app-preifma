@@ -1,5 +1,6 @@
 import { authService } from '@/api/authService';
 import { Colors } from '@/constants/Colors';
+import { getFriendlyErrorMessage } from '@/lib/errorMessages';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -30,12 +31,14 @@ export default function ForgotPasswordScreen() {
       Alert.alert('E-mail enviado!', 'Verifique sua caixa de entrada (e spam) para obter o código de recuperação.');
       setStep('token');
     } catch (err: any) {
-      const raw = err?.response?.data?.email?.[0] || err?.response?.data?.detail || '';
-      // Traduz mensagens em inglês da API
+      const raw = getFriendlyErrorMessage(
+        err,
+        'Nao foi possivel enviar o e-mail de recuperacao. Verifique sua conexao e tente novamente.',
+      );
       if (raw.includes("couldn't find an account")) {
         setError('Não encontramos uma conta com este e-mail. Verifique se digitou corretamente.');
       } else {
-        setError(raw || 'Erro ao enviar e-mail. Verifique o endereço.');
+        setError(raw);
       }
     } finally { setLoading(false); }
   };
@@ -46,8 +49,11 @@ export default function ForgotPasswordScreen() {
     try {
       await authService.validateResetToken(token.trim());
       setStep('password');
-    } catch {
-      setError('Código inválido ou expirado. Tente novamente.');
+    } catch (err: any) {
+      setError(getFriendlyErrorMessage(
+        err,
+        'Codigo invalido ou expirado. Tente novamente.',
+      ));
     } finally { setLoading(false); }
   };
 
@@ -61,7 +67,10 @@ export default function ForgotPasswordScreen() {
         { text: 'Ir para Login', onPress: () => router.replace('/(auth)/login') },
       ]);
     } catch (err: any) {
-      setError(err?.response?.data?.password?.[0] || err?.response?.data?.detail || 'Erro ao redefinir senha.');
+      setError(getFriendlyErrorMessage(
+        err,
+        'Nao foi possivel redefinir a senha. Verifique sua conexao e tente novamente.',
+      ));
     } finally { setLoading(false); }
   };
 

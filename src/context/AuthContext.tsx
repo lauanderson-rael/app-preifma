@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { authService } from '../api/authService';
 import { clearTokens, getAccessToken, getRefreshToken } from '../api/client';
+import { getFriendlyErrorMessage } from '@/lib/errorMessages';
 import type { UserProfile } from '../types/api';
 
 // ── State ─────────────────────────────────────────────────────
@@ -104,10 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await authService.me();
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        'Erro ao fazer login. Verifique suas credenciais.';
+      const msg = getFriendlyErrorMessage(
+        err,
+        'Nao foi possivel fazer login. Verifique sua conexao e tente novamente.',
+      );
       dispatch({ type: 'ERROR', payload: msg });
       throw err;
     }
@@ -126,12 +127,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const user = await authService.me();
         dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       } catch (err: any) {
-        const msg =
-          err?.response?.data?.email?.[0] ||
-          err?.response?.data?.username?.[0] ||
-          err?.response?.data?.detail ||
-          err?.message ||
-          'Erro ao criar conta.';
+        const msg = getFriendlyErrorMessage(
+          err,
+          'Nao foi possivel criar a conta. Verifique sua conexao e tente novamente.',
+      );
         dispatch({ type: 'ERROR', payload: msg });
         throw err;
       }
