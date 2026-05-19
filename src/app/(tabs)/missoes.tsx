@@ -1,6 +1,7 @@
 import { missionService } from "@/api/missionService";
 import { CustomHeader } from "@/components/CustomHeader";
 import { Colors } from "@/constants/Colors";
+import { getFriendlyErrorMessage } from "@/lib/errorMessages";
 import type { MissionProgress } from "@/types/api";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -132,7 +133,10 @@ export default function MissaoScreen() {
       const data = await missionService.getDailyMissions();
       setMissions(data);
     } catch (err: any) {
-      setError(err?.message ?? "Não foi possível carregar as missões do dia.");
+      setError(getFriendlyErrorMessage(
+        err,
+        'Nao foi possivel carregar as missoes do dia. Verifique sua conexao e tente novamente.',
+      ));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -160,7 +164,13 @@ export default function MissaoScreen() {
         "Sua recompensa da missão foi adicionada com sucesso.",
       );
     } catch (err: any) {
-      Alert.alert("Erro", err?.message ?? "Não foi possível resgatar a recompensa.");
+      Alert.alert(
+        "Erro",
+        getFriendlyErrorMessage(
+          err,
+          'Nao foi possivel resgatar a recompensa. Verifique sua conexao e tente novamente.',
+        ),
+      );
     } finally {
       setClaimingId(null);
     }
@@ -449,7 +459,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#7C3AED',
     paddingHorizontal: 16,
     height: 44,
     borderRadius: 12,

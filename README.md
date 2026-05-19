@@ -2,8 +2,8 @@
 
 Este é um projeto [Expo](https://expo.dev) e [React Native](https://reactnative.dev/) para o aplicativo **Pré-IFMA**. 
 
-O Pré-IFMA é um aplicativo móvel projetado para otimizar a preparação de estudantes para o seletivo do IFMA. Alimentado por uma API que extrai questões oficiais via inteligência artificial, o sistema oferece simulados, resoluções comentadas por IA e mecânicas de engajamento baseadas em missões diárias, níveis e experiência (XP).  
-
+O Pré-IFMA é um aplicativo móvel projetado para otimizar a preparação de estudantes para o seletivo do IFMA. Alimentado por uma API que extrai questões de provas oficiais via inteligência artificial, o app oferece simulados, resoluções comentadas por IA e mecânicas de engajamento baseadas em missões diárias, níveis e experiência (XP).  
+ 
 
 ## 🚀 Como Executar o App
 

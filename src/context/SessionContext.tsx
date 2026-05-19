@@ -5,6 +5,7 @@ import React, {
   useReducer,
 } from 'react';
 import { sessionService } from '../api/sessionService';
+import { getFriendlyErrorMessage } from '@/lib/errorMessages';
 import type {
   AnswerResult,
   Question,
@@ -138,7 +139,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'ANSWER_SUBMITTED', payload: { answer, result } });
         return result;
       } catch (err: any) {
-        dispatch({ type: 'SET_ERROR', payload: err?.message ?? 'Erro ao enviar resposta' });
+        dispatch({
+          type: 'SET_ERROR',
+          payload: getFriendlyErrorMessage(
+            err,
+            'Nao foi possivel enviar sua resposta. Verifique sua conexao e tente novamente.',
+          ),
+        });
         return null;
       }
     },
@@ -160,7 +167,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SESSION_FINISHED', payload: result });
       return result;
     } catch (err: any) {
-      dispatch({ type: 'SET_ERROR', payload: err?.message ?? 'Erro ao finalizar sessão' });
+      dispatch({
+        type: 'SET_ERROR',
+        payload: getFriendlyErrorMessage(
+          err,
+          'Nao foi possivel finalizar a sessao. Verifique sua conexao e tente novamente.',
+        ),
+      });
       return null;
     }
   }, [state.sessionId, elapsedSeconds]);
