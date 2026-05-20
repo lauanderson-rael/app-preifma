@@ -4,7 +4,7 @@ import type { AnswerResult, Question } from '@/types/api';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ReviewData {
   questions: Question[];
@@ -16,7 +16,7 @@ export default function GabaritoScreen() {
   const { reviewData: raw } = useLocalSearchParams<{ reviewData: string }>();
 
   let data: ReviewData = { questions: [], userAnswers: {}, results: {} };
-  try { data = JSON.parse(raw ?? '{}'); } catch {}
+  try { data = JSON.parse(raw ?? '{}'); } catch { }
 
   const { questions, userAnswers, results } = data;
 
@@ -116,7 +116,7 @@ export default function GabaritoScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: Colors.background },
   content: { padding: 16, gap: 14, paddingBottom: 40 },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 15, color: Colors.textSecondary },

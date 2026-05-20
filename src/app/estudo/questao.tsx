@@ -1,9 +1,9 @@
 import { examService } from "@/api/examService";
 import { sessionService } from "@/api/sessionService";
+import { QuestionImage } from "@/components/QuestionImage";
 import { Colors } from "@/constants/Colors";
 import { useAI } from "@/context/AIContext";
 import type { AnswerResult, Question } from "@/types/api";
-import { QuestionImage } from "@/components/QuestionImage";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -13,13 +13,12 @@ import {
   Alert,
   Animated,
   BackHandler,
-  Image,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -309,7 +308,7 @@ export default function QuestaoEstudoScreen() {
 
   if (loadingQuestions) {
     return (
-      <View style={[styles.safe, styles.centered]}>
+      <View style={[styles.safe, styles.centered, { backgroundColor: Colors.background }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Carregando questões...</Text>
       </View>
@@ -418,7 +417,7 @@ export default function QuestaoEstudoScreen() {
         })}
 
         {/* ENUNCIADO */}
-        <View style={styles.cardEnunciado}>
+        <View>
           <Text style={styles.enunciadoText}>{currentQuestion.number ?? (currentIndex + 1)}. {currentQuestion.statement}</Text>
         </View>
 
@@ -815,14 +814,6 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   attachmentImage: { width: "100%", height: 220 },
-  cardEnunciado: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 24,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
   enunciadoText: {
     fontSize: 16,
     lineHeight: 24,

@@ -459,7 +459,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: Colors.background },
   centered: { alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20, gap: 16 },
