@@ -150,7 +150,7 @@ export default function SimuladoProvaScreen() {
 
   if (loading || finishing) {
     return (
-      <View style={[styles.safe, styles.centered]}>
+      <View style={[styles.safe, styles.centered, { backgroundColor: Colors.background }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>
           {finishing ? 'Finalizando simulado...' : 'Carregando questões...'}
@@ -217,7 +217,7 @@ export default function SimuladoProvaScreen() {
         })}
 
         {/* Statement */}
-        <View style={styles.enunciadoCard}>
+        <View>
           <Text style={styles.enunciadoText}>{q.statement}</Text>
         </View>
 
@@ -308,8 +308,8 @@ const styles = StyleSheet.create({
   attachText: { fontSize: 14, lineHeight: 22, color: '#374151' },
   imageBox: { backgroundColor: '#FFF', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' },
   attachImage: { width: '100%', height: 220 },
-  enunciadoCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, elevation: 1, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
-  enunciadoText: { fontSize: 15, lineHeight: 24, color: Colors.text, fontWeight: '500' },
+
+  enunciadoText: { fontSize: 15, lineHeight: 24, color: Colors.text, fontWeight: '600' },
   altBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 14, padding: 14, gap: 12, borderWidth: 1.5, borderColor: '#E5E7EB', elevation: 1 },
   altSelected: { borderColor: Colors.primary, backgroundColor: '#F0FDF4' },
   altCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
