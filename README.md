@@ -3,8 +3,14 @@
 Este é um projeto [Expo](https://expo.dev) e [React Native](https://reactnative.dev/) para o aplicativo **Pré-IFMA**. 
 
 O Pré-IFMA é um aplicativo móvel projetado para otimizar a preparação de estudantes para o seletivo do IFMA. Alimentado por uma API que extrai questões de provas oficiais via inteligência artificial, o app oferece simulados, resoluções comentadas por IA e mecânicas de engajamento baseadas em missões diárias, níveis e experiência (XP).  
- 
 
+<p align="center">
+  <img src="assets/screenshots/login.png" width="250" alt="Tela de Login" style="max-width: 100%;" />
+  <img src="assets/screenshots/dashboard.png" width="250" alt="Tela de Início e Missões" style="max-width: 100%;" />
+  <img src="assets/screenshots/question.png" width="250" alt="Tela de Simulado" style="max-width: 100%;" /> 
+</p>
+
+ 
 ## 🚀 Como Executar o App
 
 Siga os passos abaixo para baixar, configurar e rodar o aplicativo na sua máquina:
@@ -38,9 +44,23 @@ No terminal já dentro da pasta (`app-preifma`), instale as dependências usando
 npm install
 ```
 
-### 3. Iniciar o servidor local (Expo)
+### 3. Configurar as Variáveis de Ambiente
 
-Com as dependências instaladas, rode o comando abaixo para iniciar o projeto:
+Crie um arquivo `.env` na raiz do projeto copiando o modelo do `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Abra o arquivo `.env` recém-criado e insira a URL da API do backend. Se for testar em um dispositivo físico conectado à mesma rede Wi-Fi, use o endereço IP local do seu computador:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://[SEU_IP_LOCAL]:8000/api
+```
+
+### 4. Iniciar o servidor local (Expo)
+
+Com as dependências e o ambiente configurados, rode o comando abaixo para iniciar o projeto:
 
 ```bash
 npx expo start
@@ -48,7 +68,7 @@ npx expo start
 
 Após executar este comando, o Expo irá iniciar um servidor de desenvolvimento e mostrará um **QR Code** no terminal (e abrirá uma página web se você apertar a respectiva tecla).
 
-### 3. Visualizando o aplicativo
+### 5. Visualizando o aplicativo
 
 - **No Celular Físico:** 
   - *Android*: Abra o app Expo Go do seu celular e escaneie o QR Code.
